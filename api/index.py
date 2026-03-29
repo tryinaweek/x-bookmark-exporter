@@ -62,7 +62,7 @@ def get_me(token):
 
 
 def fetch_all_bookmarks(token, user_id):
-    bookmarks, cursor = [], None
+    bookmarks, cursor, api_error = [], None, None
     while True:
         params = {
             "max_results": 100,
@@ -80,6 +80,8 @@ def fetch_all_bookmarks(token, user_id):
         )
         data = r.json()
         if "data" not in data:
+            if not bookmarks:
+                api_error = data
             break
 
         users = {u["id"]: u for u in data.get("includes", {}).get("users", [])}
@@ -101,7 +103,7 @@ def fetch_all_bookmarks(token, user_id):
         if not cursor:
             break
 
-    return bookmarks
+    return bookmarks, api_error
 
 
 def build_excel(bookmarks):
@@ -198,13 +200,15 @@ def fetch():
     if not token or not uid:
         return redirect("/")
 
-    bookmarks = fetch_all_bookmarks(token, uid)
+    bookmarks, api_error = fetch_all_bookmarks(token, uid)
+    error = f"X API error: {api_error}" if api_error else None
     return render_template(
         "index.html",
         configured=True,
         connected=True,
         username=session.get("username", ""),
         bookmarks=bookmarks,
+        error=error,
     )
 
 
@@ -215,7 +219,7 @@ def download():
     if not token or not uid:
         return redirect("/")
 
-    bookmarks = fetch_all_bookmarks(token, uid)
+    bookmarks, _ = fetch_all_bookmarks(token, uid)
     if not bookmarks:
         return redirect("/")
     buf = build_excel(bookmarks)
