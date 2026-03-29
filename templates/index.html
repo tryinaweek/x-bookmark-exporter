@@ -350,6 +350,11 @@
       <div class="stale-item">
         <div class="stale-title">{{ item.title }}</div>
         <div class="stale-reason">{{ item.reason }}</div>
+        {% if bookmarks and item.id and item.id <= bookmarks|length %}
+        <div style="margin-top: 4px;">
+          <a href="{{ bookmarks[item.id - 1].url }}" target="_blank" style="color: #a16207; font-size: 12px;">View tweet #{{ item.id }} &rarr;</a>
+        </div>
+        {% endif %}
       </div>
       {% endfor %}
     </div>
