@@ -56,6 +56,8 @@
     .btn-ai        { background: #7c3aed; color: #fff; }
     .btn-secondary { background: #f0f0f0; color: #333; }
     .btn-danger    { background: #fff; color: #e0245e; border: 1px solid #e5e5e5; }
+    .btn-sm        { padding: 6px 14px; font-size: 12px; }
+    .btn-outline   { background: #fff; border: 1px solid #e5e5e5; color: #555; }
 
     .user-bar {
       display: flex;
@@ -81,9 +83,27 @@
       display: flex;
       gap: 20px;
       margin-bottom: 20px;
+      align-items: center;
     }
     .stat { font-size: 13px; color: #888; }
     .stat strong { color: #1a1a1a; font-size: 22px; display: block; }
+
+    .filter-label {
+      font-size: 13px;
+      color: #7c3aed;
+      background: #f3edff;
+      padding: 4px 12px;
+      border-radius: 6px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+    }
+    .filter-label.active { display: inline-flex; }
+    .filter-clear {
+      cursor: pointer;
+      font-weight: 700;
+      color: #7c3aed;
+    }
 
     .error {
       background: #fff0f0;
@@ -115,8 +135,10 @@
       color: #555;
       white-space: nowrap;
     }
-    tbody tr { border-bottom: 1px solid #f0f0f0; }
+    tbody tr { border-bottom: 1px solid #f0f0f0; transition: background 0.15s; }
     tbody tr:hover { background: #fafafa; }
+    tbody tr.highlight { background: #f3edff; }
+    tbody tr.dimmed { opacity: 0.25; }
     tbody td { padding: 10px 12px; vertical-align: top; }
     .tweet-text { max-width: 420px; line-height: 1.5; }
     .author { white-space: nowrap; }
@@ -161,9 +183,11 @@
       border: 1px solid #e5e5e5;
       border-radius: 10px;
       padding: 16px;
-      transition: box-shadow 0.15s;
+      cursor: pointer;
+      transition: box-shadow 0.15s, border-color 0.15s;
     }
-    .category-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .category-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-color: #7c3aed; }
+    .category-card.selected { border-color: #7c3aed; background: #faf5ff; }
     .category-name { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
     .category-count { font-size: 12px; color: #888; margin-bottom: 8px; }
     .category-summary { font-size: 13px; color: #555; line-height: 1.5; }
@@ -173,7 +197,7 @@
       gap: 14px;
       padding: 12px 0;
       border-bottom: 1px solid #f0f0f0;
-      align-items: flex-start;
+      align-items: center;
     }
     .timeline-item:last-child { border-bottom: none; }
     .timeline-period {
@@ -186,7 +210,15 @@
       white-space: nowrap;
       flex-shrink: 0;
     }
-    .timeline-theme { font-size: 14px; color: #333; }
+    .timeline-theme { font-size: 14px; color: #333; flex: 1; }
+    .timeline-count {
+      font-size: 12px;
+      color: #888;
+      background: #f0f0f0;
+      padding: 2px 8px;
+      border-radius: 10px;
+      flex-shrink: 0;
+    }
 
     .gem-item, .stale-item {
       padding: 12px 16px;
@@ -204,10 +236,21 @@
     .gem-reason { font-size: 13px; color: #15803d; }
     .gem-ref { font-size: 12px; color: #22c55e; margin-top: 4px; }
 
+    .stale-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
     .stale-item {
       background: #fefce8;
       border: 1px solid #fde68a;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
     }
+    .stale-check { margin-top: 3px; accent-color: #a16207; }
+    .stale-content { flex: 1; }
     .stale-title { font-weight: 600; color: #854d0e; margin-bottom: 2px; }
     .stale-reason { font-size: 13px; color: #a16207; }
 
@@ -227,8 +270,6 @@
       content: "\2794  ";
       color: #7c3aed;
     }
-
-    .section-icon { margin-right: 6px; }
   </style>
 </head>
 <body>
@@ -301,7 +342,7 @@
   {% if analysis %}
   <!-- AI Analysis Results -->
   <div class="card">
-    <h2><span class="section-icon">&#9679;</span> AI Analysis</h2>
+    <h2>AI Analysis</h2>
 
     {% if analysis.summary %}
     <div class="summary-box">{{ analysis.summary }}</div>
@@ -309,10 +350,10 @@
 
     {% if analysis.categories %}
     <div class="analysis-section">
-      <h3>Categories</h3>
+      <h3>Categories <span style="font-weight:400; font-size:12px; color:#888;">(click to filter table)</span></h3>
       <div class="category-grid">
         {% for cat in analysis.categories %}
-        <div class="category-card">
+        <div class="category-card" onclick="filterByCategory(this, {{ cat.bookmark_ids | tojson }})" data-ids="{{ cat.bookmark_ids | tojson }}">
           <div class="category-name">{{ cat.name }}</div>
           <div class="category-count">{{ cat.count }} bookmark{{ 's' if cat.count != 1 }}</div>
           <div class="category-summary">{{ cat.summary }}</div>
@@ -329,6 +370,7 @@
       <div class="timeline-item">
         <span class="timeline-period">{{ phase.period }}</span>
         <span class="timeline-theme">{{ phase.theme }}</span>
+        <span class="timeline-count">{{ phase.count | default(phase.bookmark_ids | length if phase.bookmark_ids else '?') }} bookmarks</span>
       </div>
       {% endfor %}
     </div>
@@ -353,16 +395,27 @@
 
     {% if analysis.stale %}
     <div class="analysis-section">
-      <h3>Probably Stale - Safe to Remove</h3>
+      <div class="stale-header">
+        <h3 style="margin-bottom:0">Probably Stale - Safe to Remove</h3>
+        <div>
+          <button class="btn btn-sm btn-outline" onclick="toggleAllStale()" id="selectAllBtn">Select All</button>
+          <button class="btn btn-sm btn-outline" onclick="openSelectedStale()" style="margin-left:6px;">Open Selected</button>
+        </div>
+      </div>
       {% for item in analysis.stale %}
       <div class="stale-item">
-        <div class="stale-title">{{ item.title }}</div>
-        <div class="stale-reason">{{ item.reason }}</div>
         {% if bookmarks and item.id and item.id <= bookmarks|length %}
-        <div style="margin-top: 4px;">
-          <a href="{{ bookmarks[item.id - 1].url }}" target="_blank" style="color: #a16207; font-size: 12px;">View tweet #{{ item.id }} &rarr;</a>
-        </div>
+        <input type="checkbox" class="stale-check" data-url="{{ bookmarks[item.id - 1].url }}">
         {% endif %}
+        <div class="stale-content">
+          <div class="stale-title">{{ item.title }}</div>
+          <div class="stale-reason">{{ item.reason }}</div>
+          {% if bookmarks and item.id and item.id <= bookmarks|length %}
+          <div style="margin-top: 4px;">
+            <a href="{{ bookmarks[item.id - 1].url }}" target="_blank" style="color: #a16207; font-size: 12px;">View tweet #{{ item.id }} &rarr;</a>
+          </div>
+          {% endif %}
+        </div>
       </div>
       {% endfor %}
     </div>
@@ -382,9 +435,13 @@
   {% endif %}
 
   {% if bookmarks %}
-  <div class="card">
+  <div class="card" id="bookmarks-card">
     <div class="stats">
       <div class="stat"><strong>{{ bookmarks|length }}</strong>Bookmarks</div>
+      <span class="filter-label" id="filterLabel">
+        Filtered: <strong id="filterName"></strong>
+        <span class="filter-clear" onclick="clearFilter()">&times;</span>
+      </span>
     </div>
 
     <table>
@@ -399,9 +456,9 @@
           <th>Link</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="bookmarks-tbody">
         {% for bm in bookmarks %}
-        <tr>
+        <tr data-index="{{ loop.index }}">
           <td style="color:#ccc">{{ loop.index }}</td>
           <td class="tweet-text">{{ bm.text }}</td>
           <td class="author">
@@ -427,5 +484,82 @@
   {% endif %}
 
 </div>
+
+<script>
+// Category filtering
+let activeCategory = null;
+
+function filterByCategory(card, ids) {
+  const cards = document.querySelectorAll('.category-card');
+  const rows = document.querySelectorAll('#bookmarks-tbody tr');
+  const label = document.getElementById('filterLabel');
+  const nameEl = document.getElementById('filterName');
+  const bookmarksCard = document.getElementById('bookmarks-card');
+
+  // Toggle off if clicking same category
+  if (card.classList.contains('selected')) {
+    clearFilter();
+    return;
+  }
+
+  // Deselect all, select this one
+  cards.forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  activeCategory = ids;
+
+  // Highlight matching rows, dim others
+  rows.forEach(row => {
+    const idx = parseInt(row.dataset.index);
+    if (ids.includes(idx)) {
+      row.classList.add('highlight');
+      row.classList.remove('dimmed');
+    } else {
+      row.classList.remove('highlight');
+      row.classList.add('dimmed');
+    }
+  });
+
+  // Show filter label
+  const catName = card.querySelector('.category-name').textContent;
+  nameEl.textContent = catName;
+  label.classList.add('active');
+
+  // Scroll to bookmarks table
+  if (bookmarksCard) bookmarksCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function clearFilter() {
+  document.querySelectorAll('.category-card').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('#bookmarks-tbody tr').forEach(row => {
+    row.classList.remove('highlight', 'dimmed');
+  });
+  document.getElementById('filterLabel').classList.remove('active');
+  activeCategory = null;
+}
+
+// Stale bookmarks bulk actions
+function toggleAllStale() {
+  const checks = document.querySelectorAll('.stale-check');
+  const btn = document.getElementById('selectAllBtn');
+  const allChecked = Array.from(checks).every(c => c.checked);
+
+  checks.forEach(c => c.checked = !allChecked);
+  btn.textContent = allChecked ? 'Select All' : 'Deselect All';
+}
+
+function openSelectedStale() {
+  const checks = document.querySelectorAll('.stale-check:checked');
+  if (checks.length === 0) {
+    alert('Select stale bookmarks to open first.');
+    return;
+  }
+  if (checks.length > 10) {
+    if (!confirm('Open ' + checks.length + ' tabs? Your browser may block some pop-ups.')) return;
+  }
+  checks.forEach(c => {
+    window.open(c.dataset.url, '_blank');
+  });
+}
+</script>
 </body>
 </html>

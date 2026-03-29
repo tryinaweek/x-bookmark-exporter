@@ -122,7 +122,7 @@ def decode_bookmarks(encoded):
         return None
 
 
-def analyze_bookmarks(bookmarks):
+def analyze_bookmarks(bookmarks, username=""):
     if not CLAUDE_API_KEY:
         return None, "CLAUDE_API_KEY not configured"
 
@@ -131,15 +131,17 @@ def analyze_bookmarks(bookmarks):
         condensed.append(f"[{i}] ({bm['date']}) @{bm['username']}: {bm['text'][:280]}")
     bookmark_text = "\n".join(condensed)
 
-    prompt = f"""Analyze these {len(bookmarks)} X/Twitter bookmarks. Return ONLY valid JSON with this exact structure:
+    user_ref = f"@{username}'s" if username else "This person's"
+
+    prompt = f"""Analyze these {len(bookmarks)} X/Twitter bookmarks belonging to {user_ref}. Return ONLY valid JSON with this exact structure:
 
 {{
-  "summary": "2-3 sentence overview of what this person's bookmarks reveal about their interests and current focus",
+  "summary": "2-3 sentence overview addressing the user directly (use 'you/your') about what their bookmarks reveal about their interests and current focus",
   "categories": [
     {{"name": "Category Name", "count": 5, "bookmark_ids": [1, 5, 12], "summary": "Brief description of this category"}}
   ],
   "timeline": [
-    {{"period": "Mar 25-27", "theme": "What they were researching", "bookmark_ids": [1, 2, 3]}}
+    {{"period": "Mar 25-27", "theme": "What they were researching", "count": 15, "bookmark_ids": [1, 2, 3]}}
   ],
   "gems": [
     {{"id": 5, "title": "Short title", "reason": "Why this is worth revisiting - be specific about the value"}}
@@ -153,11 +155,12 @@ def analyze_bookmarks(bookmarks):
 }}
 
 Rules:
+- summary: Address the user directly using "you" and "your". Mention their name ({user_ref}) once. Be insightful about patterns.
 - categories: Group into 5-8 meaningful topics. Every bookmark should be in at least one category.
-- timeline: Identify 3-5 research phases based on date clusters and topic patterns.
+- timeline: Identify 3-5 research phases based on date clusters and topic patterns. Include "count" with number of bookmarks in that phase.
 - gems: Pick 5-10 bookmarks that contain genuinely valuable, actionable content that's easy to miss in a long list. Prioritize high-engagement tweets with practical advice.
 - stale: Pick bookmarks that are time-sensitive announcements, outdated news, or things that are no longer actionable.
-- actions: Give 3-5 concrete next steps. Be specific - reference actual bookmarks by number.
+- actions: Give 3-5 concrete next steps addressing the user as "you". Be specific - reference actual bookmarks by number.
 - bookmark_ids reference the [N] numbers in the list.
 
 Here are the bookmarks:
@@ -300,7 +303,7 @@ def analyze():
     if not bookmarks:
         return redirect("/fetch")
 
-    analysis, ai_error = analyze_bookmarks(bookmarks)
+    analysis, ai_error = analyze_bookmarks(bookmarks, session.get("username", ""))
     error = f"AI analysis error: {ai_error}" if ai_error else None
     return render_template(
         "index.html",
