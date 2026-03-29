@@ -150,7 +150,7 @@ def analyze_bookmarks(bookmarks, username=""):
     {{"id": 12, "title": "Short title", "reason": "Why this is no longer relevant"}}
   ],
   "actions": [
-    "Specific, actionable recommendation based on the bookmarks"
+    {{"text": "Specific, actionable recommendation", "bookmark_ids": [20, 50]}}
   ]
 }}
 
@@ -160,7 +160,7 @@ Rules:
 - timeline: Identify 3-5 research phases based on date clusters and topic patterns. Include "count" with number of bookmarks in that phase.
 - gems: Pick 5-10 bookmarks that contain genuinely valuable, actionable content that's easy to miss in a long list. Prioritize high-engagement tweets with practical advice.
 - stale: Pick bookmarks that are time-sensitive announcements, outdated news, or things that are no longer actionable.
-- actions: Give 3-5 concrete next steps addressing the user as "you". Be specific - reference actual bookmarks by number.
+- actions: Give 3-5 concrete next steps addressing the user as "you". Each action must include "text" (the recommendation) and "bookmark_ids" (array of referenced bookmark numbers). Be specific.
 - bookmark_ids reference the [N] numbers in the list.
 
 Here are the bookmarks:
