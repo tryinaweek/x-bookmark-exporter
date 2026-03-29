@@ -1,4 +1,5 @@
 import os
+import json
 import secrets
 import hashlib
 import base64
@@ -6,6 +7,7 @@ import urllib.parse
 import io
 
 import requests
+import anthropic
 from flask import Flask, render_template, request, redirect, session, send_file
 
 import openpyxl
@@ -16,6 +18,7 @@ app.secret_key = os.environ.get("SESSION_SECRET", secrets.token_hex(32))
 
 CLIENT_ID = os.environ.get("X_CLIENT_ID", "")
 CLIENT_SECRET = os.environ.get("X_CLIENT_SECRET", "")
+CLAUDE_API_KEY = os.environ.get("CLAUDE_API_KEY", "")
 
 AUTH_URL = "https://twitter.com/i/oauth2/authorize"
 TOKEN_URL = "https://api.twitter.com/2/oauth2/token"
@@ -104,6 +107,66 @@ def fetch_all_bookmarks(token, user_id):
             break
 
     return bookmarks, api_error
+
+
+def analyze_bookmarks(bookmarks):
+    if not CLAUDE_API_KEY:
+        return None, "CLAUDE_API_KEY not configured"
+
+    condensed = []
+    for i, bm in enumerate(bookmarks, 1):
+        condensed.append(f"[{i}] ({bm['date']}) @{bm['username']}: {bm['text'][:280]}")
+    bookmark_text = "\n".join(condensed)
+
+    prompt = f"""Analyze these {len(bookmarks)} X/Twitter bookmarks. Return ONLY valid JSON with this exact structure:
+
+{{
+  "summary": "2-3 sentence overview of what this person's bookmarks reveal about their interests and current focus",
+  "categories": [
+    {{"name": "Category Name", "count": 5, "bookmark_ids": [1, 5, 12], "summary": "Brief description of this category"}}
+  ],
+  "timeline": [
+    {{"period": "Mar 25-27", "theme": "What they were researching", "bookmark_ids": [1, 2, 3]}}
+  ],
+  "gems": [
+    {{"id": 5, "title": "Short title", "reason": "Why this is worth revisiting - be specific about the value"}}
+  ],
+  "stale": [
+    {{"id": 12, "title": "Short title", "reason": "Why this is no longer relevant"}}
+  ],
+  "actions": [
+    "Specific, actionable recommendation based on the bookmarks"
+  ]
+}}
+
+Rules:
+- categories: Group into 5-8 meaningful topics. Every bookmark should be in at least one category.
+- timeline: Identify 3-5 research phases based on date clusters and topic patterns.
+- gems: Pick 5-10 bookmarks that contain genuinely valuable, actionable content that's easy to miss in a long list. Prioritize high-engagement tweets with practical advice.
+- stale: Pick bookmarks that are time-sensitive announcements, outdated news, or things that are no longer actionable.
+- actions: Give 3-5 concrete next steps. Be specific - reference actual bookmarks by number.
+- bookmark_ids reference the [N] numbers in the list.
+
+Here are the bookmarks:
+
+{bookmark_text}"""
+
+    client = anthropic.Anthropic(api_key=CLAUDE_API_KEY)
+    message = client.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=4096,
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    try:
+        raw = message.content[0].text
+        # Strip markdown code fences if present
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1].rsplit("```", 1)[0]
+        analysis = json.loads(raw)
+        return analysis, None
+    except (json.JSONDecodeError, IndexError, KeyError) as e:
+        return None, f"Failed to parse AI response: {e}"
 
 
 def build_excel(bookmarks):
@@ -208,6 +271,34 @@ def fetch():
         connected=True,
         username=session.get("username", ""),
         bookmarks=bookmarks,
+        error=error,
+    )
+
+
+@app.route("/analyze")
+def analyze():
+    token = session.get("access_token")
+    uid = session.get("user_id")
+    if not token or not uid:
+        return redirect("/")
+
+    bookmarks, api_error = fetch_all_bookmarks(token, uid)
+    if api_error:
+        return render_template(
+            "index.html", configured=True, connected=True,
+            username=session.get("username", ""),
+            bookmarks=None, error=f"X API error: {api_error}",
+        )
+
+    analysis, ai_error = analyze_bookmarks(bookmarks)
+    error = f"AI analysis error: {ai_error}" if ai_error else None
+    return render_template(
+        "index.html",
+        configured=True,
+        connected=True,
+        username=session.get("username", ""),
+        bookmarks=bookmarks,
+        analysis=analysis,
         error=error,
     )
 
