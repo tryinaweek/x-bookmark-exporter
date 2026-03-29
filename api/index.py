@@ -109,6 +109,19 @@ def fetch_all_bookmarks(token, user_id):
     return bookmarks, api_error
 
 
+def encode_bookmarks(bookmarks):
+    """Encode bookmarks to a base64 string for embedding in HTML."""
+    return base64.b64encode(json.dumps(bookmarks).encode()).decode()
+
+
+def decode_bookmarks(encoded):
+    """Decode bookmarks from a base64 string."""
+    try:
+        return json.loads(base64.b64decode(encoded.encode()).decode())
+    except Exception:
+        return None
+
+
 def analyze_bookmarks(bookmarks):
     if not CLAUDE_API_KEY:
         return None, "CLAUDE_API_KEY not configured"
@@ -160,7 +173,6 @@ Here are the bookmarks:
 
     try:
         raw = message.content[0].text
-        # Strip markdown code fences if present
         if raw.startswith("```"):
             raw = raw.split("\n", 1)[1].rsplit("```", 1)[0]
         analysis = json.loads(raw)
@@ -258,6 +270,7 @@ def callback():
 
 @app.route("/fetch")
 def fetch():
+    """Fetch bookmarks from X API (costs credits)."""
     token = session.get("access_token")
     uid = session.get("user_id")
     if not token or not uid:
@@ -271,24 +284,21 @@ def fetch():
         connected=True,
         username=session.get("username", ""),
         bookmarks=bookmarks,
+        bookmarks_cache=encode_bookmarks(bookmarks) if bookmarks else None,
         error=error,
     )
 
 
-@app.route("/analyze")
+@app.route("/analyze", methods=["POST"])
 def analyze():
-    token = session.get("access_token")
-    uid = session.get("user_id")
-    if not token or not uid:
+    """Analyze cached bookmarks with AI (no X API call)."""
+    if not session.get("access_token"):
         return redirect("/")
 
-    bookmarks, api_error = fetch_all_bookmarks(token, uid)
-    if api_error:
-        return render_template(
-            "index.html", configured=True, connected=True,
-            username=session.get("username", ""),
-            bookmarks=None, error=f"X API error: {api_error}",
-        )
+    cached = request.form.get("bookmarks_cache", "")
+    bookmarks = decode_bookmarks(cached)
+    if not bookmarks:
+        return redirect("/fetch")
 
     analysis, ai_error = analyze_bookmarks(bookmarks)
     error = f"AI analysis error: {ai_error}" if ai_error else None
@@ -298,21 +308,23 @@ def analyze():
         connected=True,
         username=session.get("username", ""),
         bookmarks=bookmarks,
+        bookmarks_cache=cached,
         analysis=analysis,
         error=error,
     )
 
 
-@app.route("/download")
+@app.route("/download", methods=["POST"])
 def download():
-    token = session.get("access_token")
-    uid = session.get("user_id")
-    if not token or not uid:
+    """Download cached bookmarks as Excel (no X API call)."""
+    if not session.get("access_token"):
         return redirect("/")
 
-    bookmarks, _ = fetch_all_bookmarks(token, uid)
+    cached = request.form.get("bookmarks_cache", "")
+    bookmarks = decode_bookmarks(cached)
     if not bookmarks:
-        return redirect("/")
+        return redirect("/fetch")
+
     buf = build_excel(bookmarks)
     return send_file(buf, as_attachment=True,
                      download_name=f"bookmarks_{session.get('username', 'x')}.xlsx",

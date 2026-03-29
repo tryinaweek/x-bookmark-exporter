@@ -283,8 +283,16 @@
       </div>
       <div class="actions">
         <a href="/fetch" class="btn btn-primary">{% if bookmarks %}Refresh Bookmarks{% else %}Load Bookmarks{% endif %}</a>
-        <a href="/analyze" class="btn btn-ai" onclick="this.textContent='Analyzing...'; this.style.opacity='0.6'; this.style.pointerEvents='none';">Analyze with AI</a>
-        <a href="/download" class="btn btn-success">Download Excel</a>
+        {% if bookmarks_cache %}
+        <form method="POST" action="/analyze" style="display:inline">
+          <input type="hidden" name="bookmarks_cache" value="{{ bookmarks_cache }}">
+          <button type="submit" class="btn btn-ai" onclick="this.textContent='Analyzing...'; this.style.opacity='0.6'; this.style.pointerEvents='none';">Analyze with AI</button>
+        </form>
+        <form method="POST" action="/download" style="display:inline">
+          <input type="hidden" name="bookmarks_cache" value="{{ bookmarks_cache }}">
+          <button type="submit" class="btn btn-success">Download Excel</button>
+        </form>
+        {% endif %}
         <a href="/logout" class="btn btn-danger">Disconnect</a>
       </div>
     </div>
