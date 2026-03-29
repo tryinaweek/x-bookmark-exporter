@@ -189,10 +189,8 @@
         </div>
       </div>
       <div class="actions">
-        <a href="/fetch" class="btn btn-primary">Refresh Bookmarks</a>
-        {% if bookmarks %}
+        <a href="/fetch" class="btn btn-primary">{% if bookmarks %}Refresh Bookmarks{% else %}Load Bookmarks{% endif %}</a>
         <a href="/download" class="btn btn-success">Download Excel</a>
-        {% endif %}
         <a href="/logout" class="btn btn-danger">Disconnect</a>
       </div>
     </div>

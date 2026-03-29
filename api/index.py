@@ -143,7 +143,7 @@ def index():
         configured=configured,
         connected=bool(session.get("access_token")),
         username=session.get("username", ""),
-        bookmarks=session.get("bookmarks"),
+        bookmarks=None,
     )
 
 
@@ -188,7 +188,7 @@ def callback():
     session["username"] = uname
     session["name"] = name
 
-    return redirect("/fetch")
+    return redirect("/")
 
 
 @app.route("/fetch")
@@ -199,13 +199,23 @@ def fetch():
         return redirect("/")
 
     bookmarks = fetch_all_bookmarks(token, uid)
-    session["bookmarks"] = bookmarks
-    return redirect("/")
+    return render_template(
+        "index.html",
+        configured=True,
+        connected=True,
+        username=session.get("username", ""),
+        bookmarks=bookmarks,
+    )
 
 
 @app.route("/download")
 def download():
-    bookmarks = session.get("bookmarks")
+    token = session.get("access_token")
+    uid = session.get("user_id")
+    if not token or not uid:
+        return redirect("/")
+
+    bookmarks = fetch_all_bookmarks(token, uid)
     if not bookmarks:
         return redirect("/")
     buf = build_excel(bookmarks)
