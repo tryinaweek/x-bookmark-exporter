@@ -1,9 +1,5 @@
 {
-  "functions": {
-    "api/**/*.py": {
-      "maxDuration": 60
-    }
-  },
+  "buildCommand": "",
   "rewrites": [
     { "source": "/(.*)", "destination": "/api/index" }
   ]
