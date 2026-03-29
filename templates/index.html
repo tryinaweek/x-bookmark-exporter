@@ -406,8 +406,9 @@
 <!-- Nav -->
 <nav>
   <a href="/" class="nav-brand">
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+      <path d="M12 7l1.5 3 3.5.5-2.5 2.5.5 3.5L12 15l-3 1.5.5-3.5L7 10.5l3.5-.5z" fill="#7c3aed" stroke="#7c3aed" stroke-width="1.5"/>
     </svg>
     <span>MyBookmarks</span>
   </a>
@@ -437,14 +438,11 @@
 <section class="hero">
   <div class="hero-badge">AI-Powered Bookmark Intelligence</div>
   <h1>You saved them for a reason.<br>Let's find out <em>why</em>.</h1>
-  <p>Turn hundreds of forgotten X bookmarks into organized categories, hidden gems, and actionable insights - powered by AI.</p>
+  <p>Turn hundreds of forgotten bookmarks into organized categories, hidden gems, and actionable insights - powered by AI.</p>
   <div class="hero-cta">
     <form method="POST" action="/connect">
       <button type="submit" class="btn btn-primary-lg">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-        </svg>
-        Connect your X account
+        Get started free
       </button>
     </form>
   </div>
@@ -530,15 +528,12 @@
   <p>It takes 30 seconds. Connect, load, and let AI do the rest.</p>
   <form method="POST" action="/connect">
     <button type="submit" class="btn btn-primary-lg">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-      </svg>
       Get started free
     </button>
   </form>
 </section>
 
-<footer>MyBookmarks &mdash; AI-powered bookmark intelligence for X</footer>
+<footer>MyBookmarks &mdash; AI-powered bookmark intelligence</footer>
 
 {% else %}
 <!-- ==================== DASHBOARD ==================== -->
