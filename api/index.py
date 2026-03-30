@@ -348,8 +348,12 @@ def index():
         return render_template("index.html", configured=configured, connected=False, username="", bookmarks=None)
 
     uid = session.get("db_user_id")
-    bookmarks = db_load_cache("bookmarks_cache", uid)
-    analysis = db_load_analysis(uid, "bookmarks")
+    bookmarks, analysis = None, None
+    try:
+        bookmarks = db_load_cache("bookmarks_cache", uid)
+        analysis = db_load_analysis(uid, "bookmarks")
+    except Exception:
+        pass
     return render_template("index.html", configured=configured, connected=True,
                            username=session.get("username", ""), bookmarks=bookmarks, analysis=analysis)
 
@@ -373,17 +377,26 @@ def callback():
     state = request.args.get("state")
     if not code or state != session.get("state"):
         return render_template("index.html", configured=True, error="Authorization failed.")
-    token_data = exchange_code(code, session["verifier"])
+    try:
+        token_data = exchange_code(code, session.get("verifier", ""))
+    except Exception as e:
+        return render_template("index.html", configured=True, error=f"Token exchange error: {e}")
     token = token_data.get("access_token")
     if not token:
         return render_template("index.html", configured=True, error=f"Token error: {token_data}")
     session["access_token"] = token
-    uid, uname, name = get_me(token)
+    try:
+        uid, uname, name = get_me(token)
+    except Exception as e:
+        return render_template("index.html", configured=True, error=f"Failed to get user: {e}")
     session["user_id"] = uid
     session["username"] = uname
     session["name"] = name
-    db_uid = db_get_or_create_user(uid, uname, name, token)
-    session["db_user_id"] = db_uid
+    try:
+        db_uid = db_get_or_create_user(uid, uname, name, token)
+        session["db_user_id"] = db_uid
+    except Exception as e:
+        session["db_user_id"] = None
     return redirect("/")
 
 
