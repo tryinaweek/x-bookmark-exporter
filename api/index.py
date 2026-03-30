@@ -114,6 +114,55 @@ def db_load_suggestions(user_id):
     return result.data[0]["data"] if result.data else None
 
 
+def db_save_profile(user_id, data):
+    if not sb or not user_id:
+        return
+    existing = sb.table("user_profile").select("id").eq("user_id", user_id).execute()
+    data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    if existing.data:
+        sb.table("user_profile").update(data).eq("user_id", user_id).execute()
+    else:
+        data["user_id"] = user_id
+        sb.table("user_profile").insert(data).execute()
+
+
+def db_load_profile(user_id):
+    if not sb or not user_id:
+        return None
+    result = sb.table("user_profile").select("*").eq("user_id", user_id).limit(1).execute()
+    return result.data[0] if result.data else None
+
+
+def get_voice_context(user_id):
+    """Build a rich context string from the user's profile for AI prompts."""
+    profile = _safe_db(db_load_profile, user_id)
+    if not profile:
+        return PROFILE_CONTEXT
+
+    parts = []
+    if profile.get("bio"):
+        parts.append(f"Bio: {profile['bio']}")
+    if profile.get("expertise"):
+        parts.append(f"Expertise: {profile['expertise']}")
+    if profile.get("current_focus"):
+        parts.append(f"Current focus: {profile['current_focus']}")
+    if profile.get("opinions"):
+        parts.append(f"Strong opinions/takes: {profile['opinions']}")
+    if profile.get("donts"):
+        parts.append(f"NEVER do these in content: {profile['donts']}")
+
+    voice_examples = profile.get("voice_examples", [])
+    if voice_examples:
+        examples_text = "\n".join(f"- {ex}" for ex in voice_examples if ex)
+        if examples_text:
+            parts.append(f"Voice examples (write like these):\n{examples_text}")
+
+    if not parts:
+        return PROFILE_CONTEXT
+
+    return "\n".join(parts)
+
+
 def db_save_draft(user_id, tweets, fmt, topic, status="draft"):
     if not sb or not user_id:
         return None
@@ -306,7 +355,8 @@ def generate_smart_suggestions(username, db_uid):
     bookmark_analysis = db_load_analysis(db_uid, "bookmarks")
     tweet_analysis = db_load_analysis(db_uid, "tweets")
 
-    context_parts = [PROFILE_CONTEXT]
+    voice = get_voice_context(db_uid)
+    context_parts = [voice]
 
     if bookmark_analysis:
         cats = bookmark_analysis.get("categories", [])
@@ -370,12 +420,17 @@ LINKEDIN_FORMATTING = """LINKEDIN FORMATTING:
 - Use "I" statements and personal stories"""
 
 
-def generate_draft(username, idea, format_type, platform="x"):
+def generate_draft(username, idea, format_type, platform="x", db_uid=None):
     if not CLAUDE_API_KEY:
         return [], None
+    voice = get_voice_context(db_uid) if db_uid else PROFILE_CONTEXT
     if platform == "linkedin":
         prompt = f"""Create a viral LinkedIn post for {username} about: {idea}
-{PROFILE_CONTEXT}
+
+{voice}
+
+IMPORTANT: Write in EXACTLY this person's voice and style. Use their actual perspective, not generic advice.
+
 Return ONLY valid JSON: {{"linkedin_post":"The full post text"}}
 {LINKEDIN_FORMATTING}"""
         try:
@@ -386,7 +441,10 @@ Return ONLY valid JSON: {{"linkedin_post":"The full post text"}}
             return [], "linkedin"
     elif platform == "both":
         prompt = f"""Create content for BOTH Twitter/X and LinkedIn about: {idea}
-{PROFILE_CONTEXT}
+
+{voice}
+
+IMPORTANT: Write in EXACTLY this person's voice and style. Use their actual perspective, not generic advice.
 
 Return ONLY valid JSON:
 {{"tweets":["Hook tweet (no number)","2/ Second","3/ Third",...],"linkedin_post":"The full LinkedIn post"}}
@@ -409,13 +467,21 @@ Adapt the same core idea but in LinkedIn's longer, storytelling format."""
             return [], "both", ""
     elif format_type == "thread":
         prompt = f"""Create viral Twitter/X thread for @{username} about: {idea}
-{PROFILE_CONTEXT}
+
+{voice}
+
+IMPORTANT: Write in EXACTLY this person's voice and style. Use their actual perspective, not generic advice.
+
 Return ONLY valid JSON: {{"tweets":["Hook tweet (no number)","2/ Second","3/ Third",...]}}
 {FORMATTING_RULES}
 Write 5-8 tweets. First = pure hook. Last = CTA. Each under 280 chars."""
     else:
         prompt = f"""Create single viral tweet for @{username} about: {idea}
-{PROFILE_CONTEXT}
+
+{voice}
+
+IMPORTANT: Write in EXACTLY this person's voice and style. Use their actual perspective, not generic advice.
+
 Return ONLY valid JSON: {{"tweets":["The tweet"]}}
 {FORMATTING_RULES}
 Under 280 chars. Strong hook. Engagement driver at end."""
@@ -685,16 +751,17 @@ def compose_generate():
     if not idea:
         return redirect("/compose")
 
+    db_uid = session.get("db_user_id")
     linkedin_post = None
     if platform == "both":
-        result = generate_draft(session.get("username", ""), idea, format_type, platform="both")
+        result = generate_draft(session.get("username", ""), idea, format_type, platform="both", db_uid=db_uid)
         drafts, _, linkedin_post = result if len(result) == 3 else (result[0], "both", "")
     elif platform == "linkedin":
-        drafts, _ = generate_draft(session.get("username", ""), idea, format_type, platform="linkedin")
+        drafts, _ = generate_draft(session.get("username", ""), idea, format_type, platform="linkedin", db_uid=db_uid)
         linkedin_post = drafts[0] if drafts else ""
         drafts = []
     else:
-        drafts, _ = generate_draft(session.get("username", ""), idea, format_type, platform="x")
+        drafts, _ = generate_draft(session.get("username", ""), idea, format_type, platform="x", db_uid=db_uid)
 
     return render_template("compose.html", connected=True, username=session.get("username", ""),
                            drafts=drafts, linkedin_post=linkedin_post,
@@ -771,6 +838,38 @@ def drafts_view():
     posted_list = [d for d in all_drafts if d.get("status") == "posted"]
     return render_template("drafts.html", connected=True, username=session.get("username", ""),
                            drafts=draft_list, posted=posted_list)
+
+
+@app.route("/settings")
+def settings():
+    if not session.get("access_token"):
+        return redirect("/")
+    db_uid = session.get("db_user_id")
+    profile = _safe_db(db_load_profile, db_uid) or {}
+    return render_template("settings.html", connected=True, username=session.get("username", ""), profile=profile)
+
+
+@app.route("/settings/save", methods=["POST"])
+def settings_save():
+    if not session.get("access_token"):
+        return redirect("/")
+    db_uid = session.get("db_user_id")
+
+    # Parse voice examples from textarea (one per line)
+    examples_raw = request.form.get("voice_examples", "")
+    voice_examples = [line.strip() for line in examples_raw.split("\n---\n") if line.strip()]
+
+    data = {
+        "bio": request.form.get("bio", "").strip(),
+        "expertise": request.form.get("expertise", "").strip(),
+        "current_focus": request.form.get("current_focus", "").strip(),
+        "voice_examples": voice_examples,
+        "opinions": request.form.get("opinions", "").strip(),
+        "donts": request.form.get("donts", "").strip(),
+    }
+    _safe_db(db_save_profile, db_uid, data)
+    return render_template("settings.html", connected=True, username=session.get("username", ""),
+                           profile=data, saved=True)
 
 
 @app.route("/logout")

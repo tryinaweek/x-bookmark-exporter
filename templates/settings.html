@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voice Profile - MyBookmarks</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f5f5; color: #1a1a1a; min-height: 100vh; }
+    nav { background: #fff; border-bottom: 1px solid #f0f0f0; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; }
+    .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #1a1a1a; }
+    .nav-brand svg { width: 22px; height: 22px; }
+    .nav-brand span { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .nav-link { font-size: 14px; font-weight: 500; color: #888; text-decoration: none; }
+    .nav-link:hover { color: #333; }
+    .nav-link.active { color: #7c3aed; }
+
+    .container { max-width: 680px; margin: 32px auto; padding: 0 24px; }
+    .page-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+    .page-sub { font-size: 14px; color: #888; margin-bottom: 28px; line-height: 1.5; }
+
+    .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 28px; margin-bottom: 24px; }
+    .card h2 { font-size: 16px; font-weight: 600; margin-bottom: 4px; color: #333; }
+    .card-sub { font-size: 13px; color: #aaa; margin-bottom: 16px; }
+
+    .form-group { margin-bottom: 24px; }
+    .form-group:last-child { margin-bottom: 0; }
+    .form-label { display: block; font-size: 14px; font-weight: 600; color: #333; margin-bottom: 6px; }
+    .form-hint { font-size: 12px; color: #aaa; margin-bottom: 8px; line-height: 1.4; }
+    textarea, input[type="text"] {
+      width: 100%; border: 1px solid #ddd; border-radius: 8px; padding: 12px 14px;
+      font-size: 14px; font-family: inherit; outline: none; transition: border 0.15s;
+      line-height: 1.6;
+    }
+    textarea { resize: vertical; min-height: 100px; }
+    textarea:focus, input[type="text"]:focus { border-color: #7c3aed; }
+
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; text-decoration: none; transition: all 0.15s; }
+    .btn:hover { opacity: 0.88; }
+    .btn-primary { background: #7c3aed; color: #fff; }
+    .btn-secondary { background: #f5f5f5; color: #333; border: 1px solid #e5e5e5; }
+
+    .saved-msg { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; color: #166534; font-size: 14px; margin-bottom: 20px; }
+
+    .example-note {
+      background: #faf8ff; border: 1px solid #e8e5ff; border-radius: 8px;
+      padding: 14px; font-size: 13px; color: #666; line-height: 1.5; margin-bottom: 16px;
+    }
+    .example-note strong { color: #7c3aed; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+      <path d="M12 7l1.5 3 3.5.5-2.5 2.5.5 3.5L12 15l-3 1.5.5-3.5L7 10.5l3.5-.5z" fill="#7c3aed" stroke="#7c3aed" stroke-width="1.5"/>
+    </svg>
+    <span>MyBookmarks</span>
+  </a>
+  <div class="nav-right">
+    <a href="/" class="nav-link">Dashboard</a>
+    <a href="/bookmarks" class="nav-link">Bookmarks</a>
+    <a href="/tweets" class="nav-link">Tweets</a>
+    <a href="/compose" class="nav-link">Compose</a>
+    <a href="/drafts" class="nav-link">Drafts</a>
+    <a href="/settings" class="nav-link active">Settings</a>
+    <a href="/logout" class="nav-link" style="color:#e0245e;">Sign out</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  {% if saved %}
+  <div class="saved-msg">Voice profile saved! All content generation will now use your updated profile.</div>
+  {% endif %}
+
+  <h1 class="page-title">Voice Profile</h1>
+  <p class="page-sub">This is how the AI understands you. The more specific you are, the more your generated content will sound like YOU - not generic advice.</p>
+
+  <form method="POST" action="/settings/save">
+
+    <div class="card">
+      <h2>Who You Are</h2>
+      <p class="card-sub">Your background and what makes your perspective unique.</p>
+
+      <div class="form-group">
+        <label class="form-label">Bio</label>
+        <div class="form-hint">Who are you? What do you do? What's your background? (2-3 sentences)</div>
+        <textarea name="bio" rows="3" placeholder="e.g. Angel investor who's backed 12 AI startups. Former CTO turned operator. Built and sold an EDI company. Now building tools with Claude Code and sharing what I learn.">{{ profile.bio or '' }}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Expertise</label>
+        <div class="form-hint">What topics do you actually have authority on? Be specific.</div>
+        <textarea name="expertise" rows="3" placeholder="e.g. AI agent architecture, angel investing (pre-seed/seed), no-code SaaS building, Claude Code workflows, EDI/supply chain tech, startup validation">{{ profile.expertise or '' }}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Current Focus</label>
+        <div class="form-hint">What are you working on RIGHT NOW? Update this regularly.</div>
+        <textarea name="current_focus" rows="2" placeholder="e.g. Building a content management platform with Claude Code. Evaluating 3 AI agent startups for investment. Writing about the shift from vibe coding to production AI.">{{ profile.current_focus or '' }}</textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Your Voice</h2>
+      <p class="card-sub">Paste 3-5 posts that sound most like YOU. The AI will match this style.</p>
+
+      <div class="example-note">
+        <strong>Tip:</strong> Paste your best posts below, separated by a line with just <code>---</code> between them. Pick posts where you think "this sounds exactly like me" - not your most viral ones, but the ones that capture your authentic voice.
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Voice Examples</label>
+        <div class="form-hint">Paste 3-5 of your best posts. Separate each with --- on its own line.</div>
+        <textarea name="voice_examples" rows="12" placeholder="I just passed on a deal everyone else loved.
+
+The founder had great traction but couldn't explain why customers were churning. That's not a growth problem. That's a product problem wearing a growth costume.
+
+---
+
+Hot take: Claude Code > Cursor for serious projects.
+
+Not because it's smarter. Because it forces you to think about repo structure first. And that's the actual skill.
+
+---
+
+(paste more examples here)">{% if profile.voice_examples %}{% for ex in profile.voice_examples %}{{ ex }}{% if not loop.last %}
+---
+{% endif %}{% endfor %}{% endif %}</textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Your Opinions</h2>
+      <p class="card-sub">What do you actually believe? Strong takes make great content.</p>
+
+      <div class="form-group">
+        <label class="form-label">Strong Opinions & Takes</label>
+        <div class="form-hint">What positions do you hold that not everyone agrees with?</div>
+        <textarea name="opinions" rows="4" placeholder="e.g. No-code will replace 80% of custom development within 3 years. Most AI startups are features, not companies. The best founders I've backed were operators first, not engineers. Scheduling tools are a waste - consistency matters more than timing.">{{ profile.opinions or '' }}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Things to NEVER Say</label>
+        <div class="form-hint">Words, phrases, or styles that don't sound like you.</div>
+        <textarea name="donts" rows="3" placeholder="e.g. Never say 'game-changer', 'disrupt', 'synergy'. Don't use corporate speak. Don't start posts with emojis. Don't give generic advice like 'work hard'. No humble-bragging.">{{ profile.donts or '' }}</textarea>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:12px; justify-content:flex-end; margin-bottom:40px;">
+      <a href="/" class="btn btn-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary">Save Voice Profile</button>
+    </div>
+
+  </form>
+
+</div>
+</body>
+</html>
