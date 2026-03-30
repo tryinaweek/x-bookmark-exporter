@@ -202,9 +202,8 @@
       </div>
       <div class="actions">
         <a href="/content/fetch" class="btn btn-blue">{% if tweets %}Refresh Tweets{% else %}Load My Tweets{% endif %}</a>
-        {% if tweets_cache %}
+        {% if tweets %}
         <form method="POST" action="/content/analyze" style="display:inline">
-          <input type="hidden" name="tweets_cache" value="{{ tweets_cache }}">
           <button type="submit" class="btn btn-ai" onclick="this.textContent='Analyzing...'; this.style.opacity='0.6'; this.style.pointerEvents='none';">Analyze Performance</button>
         </form>
         {% endif %}
@@ -387,38 +386,6 @@ function copyDraft(btn, text) {
   });
 }
 
-// localStorage caching
-(function() {
-  {% if tweets_cache %}
-  localStorage.setItem('tweets_cache', '{{ tweets_cache }}');
-  {% endif %}
-  {% if analysis_json %}
-  localStorage.setItem('tweets_analysis', '{{ analysis_json | e }}');
-  {% endif %}
-  {% if connected and not tweets %}
-  var cached = localStorage.getItem('tweets_cache');
-  if (cached) {
-    var form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/content/restore';
-    var input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = 'tweets_cache';
-    input.value = cached;
-    form.appendChild(input);
-    var analysisCache = localStorage.getItem('tweets_analysis');
-    if (analysisCache) {
-      var input2 = document.createElement('input');
-      input2.type = 'hidden';
-      input2.name = 'analysis_cache';
-      input2.value = analysisCache;
-      form.appendChild(input2);
-    }
-    document.body.appendChild(form);
-    form.submit();
-  }
-  {% endif %}
-})();
 </script>
 </body>
 </html>

@@ -239,11 +239,47 @@
 
       <div class="post-actions">
         <a href="/content/compose" class="btn btn-secondary">Back to Ideas</a>
+        <button type="button" class="btn btn-secondary" onclick="saveDraft()">Save for Later</button>
         <button type="submit" class="btn btn-blue" onclick="prepareTweets()">
           Post to X
         </button>
       </div>
     </form>
+
+    <!-- Hidden save form -->
+    <form method="POST" action="/content/save-draft" id="saveForm" style="display:none">
+      <input type="hidden" name="tweets" id="saveTweetsInput">
+      <input type="hidden" name="topic" value="{{ idea or '' }}">
+      <input type="hidden" name="format" value="{{ format_type or 'tweet' }}">
+    </form>
+  </div>
+  {% endif %}
+
+  {% if saved_drafts %}
+  <!-- Saved Drafts -->
+  <div class="card">
+    <h2>Saved Drafts ({{ saved_drafts|length }})</h2>
+    {% for draft in saved_drafts %}
+    <div style="border: 1px solid #f0f0f0; border-radius: 10px; padding: 16px; margin-bottom: 12px;">
+      <div style="font-size: 13px; color: #aaa; margin-bottom: 8px;">
+        {{ draft.topic or 'Untitled' }} &middot; {{ draft.format }} &middot; {{ draft.created_at[:10] if draft.created_at else '' }}
+      </div>
+      <div style="font-size: 14px; line-height: 1.5; color: #333; margin-bottom: 12px; white-space: pre-wrap;">{{ draft.tweets[0] if draft.tweets else '' }}</div>
+      {% if draft.tweets|length > 1 %}
+      <div style="font-size: 12px; color: #888; margin-bottom: 12px;">+ {{ draft.tweets|length - 1 }} more tweets in thread</div>
+      {% endif %}
+      <div style="display: flex; gap: 8px;">
+        <form method="POST" action="/content/post" style="display:inline">
+          <input type="hidden" name="tweets" value="{{ draft.tweets | tojson }}">
+          <input type="hidden" name="draft_id" value="{{ draft.id }}">
+          <button type="submit" class="btn btn-sm btn-blue">Post to X</button>
+        </form>
+        <form method="POST" action="/content/delete-draft/{{ draft.id }}" style="display:inline">
+          <button type="submit" class="btn btn-sm btn-secondary" style="color: #e0245e;">Delete</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
   </div>
   {% endif %}
 
@@ -281,6 +317,14 @@ function prepareTweets() {
   const inputs = document.querySelectorAll('.tweet-input');
   const tweets = Array.from(inputs).map(t => t.value.trim()).filter(t => t);
   document.getElementById('tweetsInput').value = JSON.stringify(tweets);
+}
+
+function saveDraft() {
+  const inputs = document.querySelectorAll('.tweet-input');
+  const tweets = Array.from(inputs).map(t => t.value.trim()).filter(t => t);
+  if (!tweets.length) return;
+  document.getElementById('saveTweetsInput').value = JSON.stringify(tweets);
+  document.getElementById('saveForm').submit();
 }
 </script>
 </body>

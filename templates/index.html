@@ -657,13 +657,11 @@
       </div>
       <div class="actions">
         <a href="/fetch" class="btn btn-blue">{% if bookmarks %}Refresh Bookmarks{% else %}Load Bookmarks{% endif %}</a>
-        {% if bookmarks_cache %}
+        {% if bookmarks %}
         <form method="POST" action="/analyze" style="display:inline">
-          <input type="hidden" name="bookmarks_cache" value="{{ bookmarks_cache }}">
           <button type="submit" class="btn btn-ai" onclick="this.textContent='Analyzing...'; this.style.opacity='0.6'; this.style.pointerEvents='none';">Analyze with AI</button>
         </form>
         <form method="POST" action="/download" style="display:inline">
-          <input type="hidden" name="bookmarks_cache" value="{{ bookmarks_cache }}">
           <button type="submit" class="btn btn-success">Download Excel</button>
         </form>
         {% endif %}
@@ -894,38 +892,6 @@ function clearFilter() {
   if (pills.length > 0) pills[0].classList.add('active');
 }
 
-// localStorage caching
-(function() {
-  {% if bookmarks_cache %}
-  localStorage.setItem('bookmarks_cache', '{{ bookmarks_cache }}');
-  {% endif %}
-  {% if analysis_json %}
-  localStorage.setItem('bookmarks_analysis', '{{ analysis_json | e }}');
-  {% endif %}
-  {% if connected and not bookmarks %}
-  var cached = localStorage.getItem('bookmarks_cache');
-  if (cached) {
-    var form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/restore';
-    var input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = 'bookmarks_cache';
-    input.value = cached;
-    form.appendChild(input);
-    var analysisCache = localStorage.getItem('bookmarks_analysis');
-    if (analysisCache) {
-      var input2 = document.createElement('input');
-      input2.type = 'hidden';
-      input2.name = 'analysis_cache';
-      input2.value = analysisCache;
-      form.appendChild(input2);
-    }
-    document.body.appendChild(form);
-    form.submit();
-  }
-  {% endif %}
-})();
 </script>
 </body>
 </html>
