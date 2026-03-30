@@ -232,6 +232,95 @@
       margin-bottom: 28px;
     }
 
+    .pricing {
+      padding: 60px 24px;
+      background: #fff;
+    }
+    .pricing-inner {
+      max-width: 680px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .pricing-inner h2 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+    .pricing-sub {
+      font-size: 15px;
+      color: #888;
+      margin-bottom: 36px;
+    }
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      text-align: left;
+    }
+    @media (max-width: 540px) {
+      .pricing-grid { grid-template-columns: 1fr; }
+    }
+    .pricing-card {
+      border: 1px solid #e5e5e5;
+      border-radius: 14px;
+      padding: 28px 24px;
+      position: relative;
+    }
+    .pricing-card-pro {
+      border-color: #7c3aed;
+      box-shadow: 0 0 0 1px #7c3aed;
+    }
+    .pricing-popular {
+      position: absolute;
+      top: -11px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #7c3aed;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 14px;
+      border-radius: 20px;
+      letter-spacing: 0.5px;
+    }
+    .pricing-card-header { margin-bottom: 20px; }
+    .pricing-card-header h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .pricing-price {
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: -1px;
+    }
+    .pricing-price span {
+      font-size: 15px;
+      font-weight: 500;
+      color: #aaa;
+      letter-spacing: 0;
+    }
+    .pricing-features {
+      list-style: none;
+      padding: 0;
+      margin-bottom: 24px;
+    }
+    .pricing-features li {
+      font-size: 14px;
+      color: #555;
+      padding: 6px 0;
+      padding-left: 22px;
+      position: relative;
+    }
+    .pricing-features li::before {
+      content: "\2713";
+      position: absolute;
+      left: 0;
+      color: #00ba7c;
+      font-weight: 700;
+    }
+
     footer {
       text-align: center;
       padding: 24px;
@@ -447,7 +536,7 @@
       </button>
     </form>
   </div>
-  <p class="hero-note">Free to try. No credit card required.</p>
+  <p class="hero-note">Start with a free analysis. No credit card required.</p>
 </section>
 
 <!-- Features -->
@@ -523,13 +612,54 @@
   </div>
 </section>
 
+<!-- Pricing -->
+<section class="pricing">
+  <div class="pricing-inner">
+    <h2>Simple pricing</h2>
+    <p class="pricing-sub">One free analysis to start. Then pick what works for you.</p>
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <div class="pricing-card-header">
+          <h3>Free</h3>
+          <div class="pricing-price">$0<span>/mo</span></div>
+        </div>
+        <ul class="pricing-features">
+          <li>View &amp; export all bookmarks</li>
+          <li>1 AI analysis per month</li>
+          <li>Download Excel</li>
+          <li>Bring your own X API keys</li>
+        </ul>
+        <form method="POST" action="/connect">
+          <button type="submit" class="btn btn-secondary" style="width:100%; justify-content:center;">Get started</button>
+        </form>
+      </div>
+      <div class="pricing-card pricing-card-pro">
+        <div class="pricing-popular">Most Popular</div>
+        <div class="pricing-card-header">
+          <h3>Pro</h3>
+          <div class="pricing-price">$5<span>/mo</span></div>
+        </div>
+        <ul class="pricing-features">
+          <li>View &amp; export all bookmarks</li>
+          <li>Unlimited AI analyses</li>
+          <li>Download Excel</li>
+          <li>No API keys needed</li>
+        </ul>
+        <form method="POST" action="/connect">
+          <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">Start free trial</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- Final CTA -->
 <section class="final-cta">
   <h2>Ready to unlock your bookmarks?</h2>
-  <p>It takes 30 seconds. Connect, load, and let AI do the rest.</p>
+  <p>Connect, load, and get your first AI analysis free.</p>
   <form method="POST" action="/connect">
     <button type="submit" class="btn btn-primary-lg">
-      Get started free
+      Connect your X account
     </button>
   </form>
 </section>
