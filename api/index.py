@@ -634,16 +634,20 @@ def sync():
         return redirect("/")
 
     errors = []
+    stats = []
 
     # Delta bookmarks
     try:
         _, bm_last_id, _ = db_load_cache_full("bookmarks_cache", db_uid)
         new_bm, bm_err = fetch_bookmarks_delta(token, uid, since_id=bm_last_id)
-        if bm_err and not bm_last_id:
+        if bm_err:
             errors.append(f"Bookmarks: {bm_err}")
         elif new_bm:
             latest_id = new_bm[0]["id"]
-            db_merge_cache("bookmarks_cache", db_uid, new_bm, latest_id)
+            merged = db_merge_cache("bookmarks_cache", db_uid, new_bm, latest_id)
+            stats.append(f"{len(new_bm)} new bookmarks (total: {len(merged)})")
+        else:
+            stats.append("Bookmarks: no new data")
     except Exception as e:
         errors.append(f"Bookmarks sync error: {e}")
 
@@ -651,18 +655,21 @@ def sync():
     try:
         _, tw_last_id, _ = db_load_cache_full("tweets_cache", db_uid)
         new_tw, tw_err = fetch_tweets_delta(token, uid, since_id=tw_last_id)
-        if tw_err and not tw_last_id:
+        if tw_err:
             errors.append(f"Tweets: {tw_err}")
         elif new_tw:
             latest_id = new_tw[0]["id"]
-            db_merge_cache("tweets_cache", db_uid, new_tw, latest_id)
+            merged = db_merge_cache("tweets_cache", db_uid, new_tw, latest_id)
+            stats.append(f"{len(new_tw)} new tweets (total: {len(merged)})")
+        else:
+            stats.append("Tweets: no new data")
     except Exception as e:
         errors.append(f"Tweets sync error: {e}")
 
     if errors:
         session["sync_error"] = " | ".join(errors)
     else:
-        session["sync_status"] = "Sync complete!"
+        session["sync_status"] = "Sync complete! " + " | ".join(stats)
     return redirect("/")
 
 
