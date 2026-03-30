@@ -79,15 +79,16 @@
       </div>
       <div class="draft-tweets">
         {% for tweet in draft.tweets %}
-        <div class="draft-tweet">{{ tweet }}</div>
+        <textarea class="draft-tweet draft-edit" data-draft="{{ draft.id }}" rows="4" style="width:100%; border:1px solid #e5e5e5; border-radius:8px; padding:12px; font-size:14px; font-family:inherit; line-height:1.6; resize:vertical; outline:none; margin-bottom:6px; background:#fafafa;" onfocus="this.style.background='#fff'; this.style.borderColor='#7c3aed';" onblur="this.style.background='#fafafa'; this.style.borderColor='#e5e5e5';">{{ tweet }}</textarea>
         {% endfor %}
       </div>
       <div class="draft-actions">
-        <form method="POST" action="/compose/post" style="display:inline">
-          <input type="hidden" name="tweets" value="{{ draft.tweets | tojson }}">
+        <form method="POST" action="/compose/post" style="display:inline" class="post-form-{{ draft.id }}">
+          <input type="hidden" name="tweets" class="post-tweets-{{ draft.id }}" value="{{ draft.tweets | tojson }}">
           <input type="hidden" name="draft_id" value="{{ draft.id }}">
-          <button type="submit" class="btn btn-sm btn-blue">Post to X</button>
+          <button type="submit" class="btn btn-sm btn-blue" onclick="updatePostData('{{ draft.id }}')">Post to X</button>
         </form>
+        <button class="btn btn-sm btn-secondary" onclick="copyDraftText('{{ draft.id }}')">Copy</button>
         <form method="POST" action="/compose/delete/{{ draft.id }}" style="display:inline">
           <button type="submit" class="btn btn-sm btn-secondary" style="color:#e0245e;">Delete</button>
         </form>
@@ -125,5 +126,23 @@
   {% endif %}
 
 </div>
+
+<script>
+function updatePostData(draftId) {
+  var textareas = document.querySelectorAll('.draft-edit[data-draft="' + draftId + '"]');
+  var tweets = Array.from(textareas).map(function(t) { return t.value.trim(); }).filter(function(t) { return t; });
+  document.querySelector('.post-tweets-' + draftId).value = JSON.stringify(tweets);
+}
+
+function copyDraftText(draftId) {
+  var textareas = document.querySelectorAll('.draft-edit[data-draft="' + draftId + '"]');
+  var text = Array.from(textareas).map(function(t) { return t.value.trim(); }).join('\n\n');
+  navigator.clipboard.writeText(text).then(function() {
+    event.target.textContent = 'Copied!';
+    event.target.style.color = '#166534';
+    setTimeout(function() { event.target.textContent = 'Copy'; event.target.style.color = '#333'; }, 2000);
+  });
+}
+</script>
 </body>
 </html>
