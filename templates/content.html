@@ -391,7 +391,11 @@ function copyDraft(btn, text) {
 (function() {
   {% if tweets_cache %}
   localStorage.setItem('tweets_cache', '{{ tweets_cache }}');
-  {% elif connected and not tweets %}
+  {% endif %}
+  {% if analysis_json %}
+  localStorage.setItem('tweets_analysis', '{{ analysis_json | e }}');
+  {% endif %}
+  {% if connected and not tweets %}
   var cached = localStorage.getItem('tweets_cache');
   if (cached) {
     var form = document.createElement('form');
@@ -402,6 +406,14 @@ function copyDraft(btn, text) {
     input.name = 'tweets_cache';
     input.value = cached;
     form.appendChild(input);
+    var analysisCache = localStorage.getItem('tweets_analysis');
+    if (analysisCache) {
+      var input2 = document.createElement('input');
+      input2.type = 'hidden';
+      input2.name = 'analysis_cache';
+      input2.value = analysisCache;
+      form.appendChild(input2);
+    }
     document.body.appendChild(form);
     form.submit();
   }

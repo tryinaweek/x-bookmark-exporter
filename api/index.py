@@ -393,6 +393,13 @@ def restore():
     bookmarks = decode_bookmarks(cached)
     if not bookmarks:
         return redirect("/")
+    analysis_raw = request.form.get("analysis_cache", "")
+    analysis = None
+    if analysis_raw:
+        try:
+            analysis = json.loads(analysis_raw)
+        except json.JSONDecodeError:
+            pass
     return render_template(
         "index.html",
         configured=True,
@@ -400,6 +407,8 @@ def restore():
         username=session.get("username", ""),
         bookmarks=bookmarks,
         bookmarks_cache=cached,
+        analysis=analysis,
+        analysis_json=analysis_raw if analysis else None,
     )
 
 
@@ -437,6 +446,7 @@ def analyze():
 
     analysis, ai_error = analyze_bookmarks(bookmarks, session.get("username", ""))
     error = f"AI analysis error: {ai_error}" if ai_error else None
+    analysis_json = json.dumps(analysis) if analysis else None
     return render_template(
         "index.html",
         configured=True,
@@ -445,6 +455,7 @@ def analyze():
         bookmarks=bookmarks,
         bookmarks_cache=cached,
         analysis=analysis,
+        analysis_json=analysis_json,
         error=error,
     )
 
@@ -488,12 +499,21 @@ def content_restore():
     tweets = decode_bookmarks(cached)
     if not tweets:
         return redirect("/content")
+    analysis_raw = request.form.get("analysis_cache", "")
+    analysis = None
+    if analysis_raw:
+        try:
+            analysis = json.loads(analysis_raw)
+        except json.JSONDecodeError:
+            pass
     return render_template(
         "content.html",
         connected=True,
         username=session.get("username", ""),
         tweets=tweets,
         tweets_cache=cached,
+        analysis=analysis,
+        analysis_json=analysis_raw if analysis else None,
     )
 
 
@@ -530,6 +550,7 @@ def content_analyze():
 
     analysis, ai_error = analyze_tweets(tweets, session.get("username", ""))
     error = f"AI analysis error: {ai_error}" if ai_error else None
+    analysis_json = json.dumps(analysis) if analysis else None
     return render_template(
         "content.html",
         connected=True,
@@ -537,6 +558,7 @@ def content_analyze():
         tweets=tweets,
         tweets_cache=cached,
         analysis=analysis,
+        analysis_json=analysis_json,
         error=error,
     )
 
