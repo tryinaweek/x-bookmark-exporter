@@ -929,6 +929,23 @@ def debug():
         "ensure_db_uid_result": db_uid,
         "supabase_connected": sb is not None,
     }
+    # Try to create user directly and capture error
+    if sb and not db_uid:
+        x_uid = session.get("user_id")
+        uname = session.get("username", "")
+        try:
+            result = sb.table("users").insert({
+                "x_user_id": str(x_uid), "username": uname,
+                "name": session.get("name", ""), "access_token": session.get("access_token", ""),
+            }).execute()
+            info["insert_result"] = str(result.data)
+            if result.data:
+                db_uid = result.data[0]["id"]
+                session["db_user_id"] = db_uid
+                info["new_db_uid"] = db_uid
+        except Exception as e:
+            info["insert_error"] = str(e)
+
     # Check each table
     if sb and db_uid:
         try:
