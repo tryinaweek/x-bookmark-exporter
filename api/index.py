@@ -917,6 +917,61 @@ def settings_save():
                            profile=data, saved=True)
 
 
+@app.route("/debug")
+def debug():
+    if not session.get("access_token"):
+        return redirect("/")
+    db_uid = ensure_db_uid()
+    info = {
+        "session_user_id": session.get("user_id"),
+        "session_username": session.get("username"),
+        "session_db_user_id": session.get("db_user_id"),
+        "ensure_db_uid_result": db_uid,
+        "supabase_connected": sb is not None,
+    }
+    # Check each table
+    if sb and db_uid:
+        try:
+            users = sb.table("users").select("id, x_user_id, username").eq("id", db_uid).execute()
+            info["users_table"] = users.data
+        except Exception as e:
+            info["users_error"] = str(e)
+        try:
+            bm = sb.table("bookmarks_cache").select("user_id, last_id, fetched_at").eq("user_id", db_uid).execute()
+            info["bookmarks_cache_rows"] = len(bm.data) if bm.data else 0
+            if bm.data:
+                # Check data size
+                bm_full = sb.table("bookmarks_cache").select("data").eq("user_id", db_uid).limit(1).execute()
+                if bm_full.data and bm_full.data[0].get("data"):
+                    info["bookmarks_data_count"] = len(bm_full.data[0]["data"]) if isinstance(bm_full.data[0]["data"], list) else "not a list"
+                else:
+                    info["bookmarks_data"] = "empty or null"
+        except Exception as e:
+            info["bookmarks_error"] = str(e)
+        try:
+            tw = sb.table("tweets_cache").select("user_id, last_id, fetched_at").eq("user_id", db_uid).execute()
+            info["tweets_cache_rows"] = len(tw.data) if tw.data else 0
+            if tw.data:
+                tw_full = sb.table("tweets_cache").select("data").eq("user_id", db_uid).limit(1).execute()
+                if tw_full.data and tw_full.data[0].get("data"):
+                    info["tweets_data_count"] = len(tw_full.data[0]["data"]) if isinstance(tw_full.data[0]["data"], list) else "not a list"
+                else:
+                    info["tweets_data"] = "empty or null"
+        except Exception as e:
+            info["tweets_error"] = str(e)
+        try:
+            dr = sb.table("drafts").select("id, topic, status").eq("user_id", db_uid).execute()
+            info["drafts"] = dr.data
+        except Exception as e:
+            info["drafts_error"] = str(e)
+        try:
+            pr = sb.table("user_profile").select("bio, expertise").eq("user_id", db_uid).execute()
+            info["profile_exists"] = bool(pr.data)
+        except Exception as e:
+            info["profile_error"] = str(e)
+    return f"<html><body><pre>{json.dumps(info, indent=2, default=str)}</pre></body></html>"
+
+
 @app.route("/logout")
 def logout():
     session.clear()
