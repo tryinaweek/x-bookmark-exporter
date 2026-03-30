@@ -521,6 +521,31 @@ def _safe_db(fn, *args, **kwargs):
         return None
 
 
+def ensure_db_uid():
+    """Make sure db_user_id is set in session, recover if missing."""
+    db_uid = ensure_db_uid()
+    if db_uid:
+        return db_uid
+    x_uid = session.get("user_id")
+    if not x_uid or not sb:
+        return None
+    try:
+        existing = sb.table("users").select("id").eq("x_user_id", x_uid).execute()
+        if existing.data:
+            db_uid = existing.data[0]["id"]
+            session["db_user_id"] = db_uid
+            return db_uid
+        # Create user if not exists
+        uname = session.get("username", "")
+        name = session.get("name", "")
+        token = session.get("access_token", "")
+        db_uid = db_get_or_create_user(x_uid, uname, name, token)
+        session["db_user_id"] = db_uid
+        return db_uid
+    except Exception:
+        return None
+
+
 # -- routes ----------------------------------------------------------------
 
 @app.route("/")
@@ -530,7 +555,7 @@ def index():
     if not session.get("access_token"):
         return render_template("index.html", configured=configured, connected=False)
 
-    db_uid = session.get("db_user_id")
+    db_uid = ensure_db_uid()
 
     # Load all cached data
     bm_data, bm_last_id, bm_fetched = (None, None, None)
@@ -604,7 +629,7 @@ def sync():
     """Delta sync - fetches only new bookmarks and tweets."""
     token = session.get("access_token")
     uid = session.get("user_id")
-    db_uid = session.get("db_user_id")
+    db_uid = ensure_db_uid()
     if not token or not uid:
         return redirect("/")
 
@@ -645,7 +670,7 @@ def sync():
 def bookmarks_view():
     if not session.get("access_token"):
         return redirect("/")
-    db_uid = session.get("db_user_id")
+    db_uid = ensure_db_uid()
     bookmarks, _, fetched = (None, None, None)
     try:
         bookmarks, _, fetched = db_load_cache_full("bookmarks_cache", db_uid)
@@ -660,7 +685,7 @@ def bookmarks_view():
 def bookmarks_analyze():
     if not session.get("access_token"):
         return redirect("/")
-    db_uid = session.get("db_user_id")
+    db_uid = ensure_db_uid()
     bookmarks, _, fetched = db_load_cache_full("bookmarks_cache", db_uid)
     if not bookmarks:
         return redirect("/bookmarks")
@@ -676,7 +701,7 @@ def bookmarks_analyze():
 def bookmarks_download():
     if not session.get("access_token"):
         return redirect("/")
-    db_uid = session.get("db_user_id")
+    db_uid = ensure_db_uid()
     bookmarks, _, _ = db_load_cache_full("bookmarks_cache", db_uid)
     if not bookmarks:
         return redirect("/bookmarks")
@@ -690,7 +715,7 @@ def bookmarks_download():
 def tweets_view():
     if not session.get("access_token"):
         return redirect("/")
-    db_uid = session.get("db_user_id")
+    db_uid = ensure_db_uid()
     tweets, _, fetched = (None, None, None)
     try:
         tweets, _, fetched = db_load_cache_full("tweets_cache", db_uid)
@@ -705,7 +730,7 @@ def tweets_view():
 def tweets_analyze():
     if not session.get("access_token"):
         return redirect("/")
-    db_uid = session.get("db_user_id")
+    db_uid = ensure_db_uid()
     tweets, _, fetched = db_load_cache_full("tweets_cache", db_uid)
     if not tweets:
         return redirect("/tweets")
@@ -721,7 +746,7 @@ def tweets_analyze():
 def compose():
     if not session.get("access_token"):
         return redirect("/")
-    db_uid = session.get("db_user_id")
+    db_uid = ensure_db_uid()
     suggestions = _safe_db(db_load_suggestions, db_uid)
     drafts_list = _safe_db(db_load_drafts, db_uid, "draft") or []
     return render_template("compose.html", connected=True, username=session.get("username", ""),
@@ -732,7 +757,7 @@ def compose():
 def compose_suggestions():
     if not session.get("access_token"):
         return redirect("/")
-    db_uid = session.get("db_user_id")
+    db_uid = ensure_db_uid()
     suggestions = generate_smart_suggestions(session.get("username", ""), db_uid)
     if suggestions:
         _safe_db(db_save_suggestions, db_uid, suggestions)
@@ -751,7 +776,7 @@ def compose_generate():
     if not idea:
         return redirect("/compose")
 
-    db_uid = session.get("db_user_id")
+    db_uid = ensure_db_uid()
     linkedin_post = None
     if platform == "both":
         result = generate_draft(session.get("username", ""), idea, format_type, platform="both", db_uid=db_uid)
@@ -772,16 +797,29 @@ def compose_generate():
 def compose_save():
     if not session.get("access_token"):
         return redirect("/")
-    db_uid = session.get("db_user_id")
+    db_uid = ensure_db_uid()
     tweets_json = request.form.get("tweets", "[]")
     topic = request.form.get("topic", "")
     fmt = request.form.get("format", "tweet")
     try:
         tweets = json.loads(tweets_json)
     except json.JSONDecodeError:
+        tweets = []
+    if not tweets:
         return redirect("/compose")
-    if tweets:
-        _safe_db(db_save_draft, db_uid, tweets, fmt, topic)
+    if not db_uid:
+        # Try to recover db_user_id from session user_id
+        x_uid = session.get("user_id")
+        if x_uid and sb:
+            existing = sb.table("users").select("id").eq("x_user_id", x_uid).execute()
+            if existing.data:
+                db_uid = existing.data[0]["id"]
+                session["db_user_id"] = db_uid
+    try:
+        db_save_draft(db_uid, tweets, fmt, topic)
+    except Exception as e:
+        return render_template("compose.html", connected=True, username=session.get("username", ""),
+                               error=f"Save failed (db_uid={db_uid}): {e}")
     return redirect("/compose")
 
 
@@ -832,7 +870,7 @@ def compose_post():
 def drafts_view():
     if not session.get("access_token"):
         return redirect("/")
-    db_uid = session.get("db_user_id")
+    db_uid = ensure_db_uid()
     all_drafts = _safe_db(db_load_drafts, db_uid) or []
     draft_list = [d for d in all_drafts if d.get("status") == "draft"]
     posted_list = [d for d in all_drafts if d.get("status") == "posted"]
@@ -844,7 +882,7 @@ def drafts_view():
 def settings():
     if not session.get("access_token"):
         return redirect("/")
-    db_uid = session.get("db_user_id")
+    db_uid = ensure_db_uid()
     profile = _safe_db(db_load_profile, db_uid) or {}
     return render_template("settings.html", connected=True, username=session.get("username", ""), profile=profile)
 
@@ -853,7 +891,7 @@ def settings():
 def settings_save():
     if not session.get("access_token"):
         return redirect("/")
-    db_uid = session.get("db_user_id")
+    db_uid = ensure_db_uid()
 
     # Parse voice examples from textarea (one per line)
     examples_raw = request.form.get("voice_examples", "")
