@@ -168,7 +168,12 @@
 
   {% if suggestions %}
   <div class="card">
-    <h2>Today's Content Ideas</h2>
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+      <h2 style="margin-bottom:0;">Today's Content Ideas</h2>
+      <form method="POST" action="/compose/suggestions" style="display:inline">
+        <button type="submit" class="btn btn-sm btn-secondary" onclick="this.textContent='Regenerating...'; this.style.opacity='0.6';">Regenerate</button>
+      </form>
+    </div>
     <p class="card-sub">Trending topics tailored to your profile. Click Compose to start writing.</p>
     <div class="suggestion-grid">
       {% for s in suggestions %}
