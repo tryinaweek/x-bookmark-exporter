@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Content Engine - MyBookmarks</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f5f5; color: #1a1a1a; min-height: 100vh;
+    }
+
+    nav {
+      background: #fff; border-bottom: 1px solid #f0f0f0;
+      padding: 14px 32px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #1a1a1a; }
+    .nav-brand svg { width: 22px; height: 22px; }
+    .nav-brand span { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+
+    .tabs {
+      display: flex; gap: 0; background: #fff; border-bottom: 1px solid #e5e5e5;
+      padding: 0 32px;
+    }
+    .tab {
+      padding: 12px 20px; font-size: 14px; font-weight: 600; color: #888;
+      text-decoration: none; border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .tab:hover { color: #333; }
+    .tab.active { color: #7c3aed; border-bottom-color: #7c3aed; }
+
+    .container { max-width: 960px; margin: 32px auto; padding: 0 24px; }
+
+    .card {
+      background: #fff; border: 1px solid #e5e5e5; border-radius: 12px;
+      padding: 32px; margin-bottom: 24px;
+    }
+    .card h2 { font-size: 16px; font-weight: 600; margin-bottom: 20px; color: #444; }
+    .card h3 { font-size: 15px; font-weight: 600; margin-bottom: 12px; color: #333; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px;
+      border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;
+      border: none; text-decoration: none; transition: all 0.15s;
+    }
+    .btn:hover { opacity: 0.88; }
+    .btn-blue { background: #1D9BF0; color: #fff; }
+    .btn-ai { background: #7c3aed; color: #fff; }
+    .btn-success { background: #00ba7c; color: #fff; }
+    .btn-danger { background: #fff; color: #e0245e; border: 1px solid #e5e5e5; }
+    .btn-ghost { background: transparent; color: #555; padding: 8px 16px; font-size: 14px; font-weight: 600; text-decoration: none; }
+
+    .user-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .user-info { display: flex; align-items: center; gap: 10px; }
+    .avatar {
+      width: 38px; height: 38px; background: #7c3aed; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 700; font-size: 16px;
+    }
+    .user-name { font-weight: 600; font-size: 15px; }
+    .user-handle { font-size: 13px; color: #888; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .error {
+      background: #fff0f0; border: 1px solid #ffc0c0; border-radius: 8px;
+      padding: 14px 18px; color: #c0392b; font-size: 14px; margin-bottom: 20px;
+    }
+    .empty { text-align: center; padding: 60px 20px; color: #aaa; font-size: 14px; }
+
+    /* Stats */
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+    @media (max-width: 640px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+    .stat-card {
+      border: 1px solid #f0f0f0; border-radius: 10px; padding: 16px; text-align: center;
+    }
+    .stat-value { font-size: 28px; font-weight: 800; color: #1a1a1a; }
+    .stat-label { font-size: 12px; color: #888; margin-top: 2px; }
+
+    /* Analysis sections */
+    .analysis-section { margin-bottom: 28px; }
+    .analysis-section:last-child { margin-bottom: 0; }
+
+    .summary-box {
+      background: #f0e6ff; border: 1px solid #d4b5ff; border-radius: 10px;
+      padding: 18px 22px; font-size: 15px; line-height: 1.6; color: #4a1d8a; margin-bottom: 28px;
+    }
+
+    .perf-item {
+      padding: 14px 16px; border-radius: 8px; margin-bottom: 10px;
+      font-size: 14px; line-height: 1.5;
+    }
+    .perf-item:last-child { margin-bottom: 0; }
+    .perf-top { background: #f0fdf4; border: 1px solid #bbf7d0; }
+    .perf-low { background: #fefce8; border: 1px solid #fde68a; }
+    .perf-title { font-weight: 600; margin-bottom: 2px; }
+    .perf-top .perf-title { color: #166534; }
+    .perf-top .perf-reason { color: #15803d; font-size: 13px; }
+    .perf-low .perf-title { color: #854d0e; }
+    .perf-low .perf-reason { color: #a16207; font-size: 13px; }
+    .perf-ref { font-size: 12px; margin-top: 4px; }
+    .perf-top .perf-ref a { color: #22c55e; }
+    .perf-low .perf-ref a { color: #a16207; }
+
+    .pattern-item {
+      padding: 14px 16px; background: #f8f8ff; border: 1px solid #e8e5ff;
+      border-radius: 8px; margin-bottom: 10px; font-size: 14px; line-height: 1.5;
+    }
+    .pattern-item:last-child { margin-bottom: 0; }
+    .pattern-name { font-weight: 600; color: #7c3aed; margin-bottom: 4px; }
+    .pattern-evidence { font-size: 13px; color: #666; margin-bottom: 4px; }
+    .pattern-rec { font-size: 13px; color: #333; font-style: italic; }
+
+    .draft-card {
+      border: 1px solid #e5e5e5; border-radius: 10px; padding: 18px;
+      margin-bottom: 14px; transition: box-shadow 0.15s;
+    }
+    .draft-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .draft-card:last-child { margin-bottom: 0; }
+    .draft-text {
+      font-size: 15px; line-height: 1.5; margin-bottom: 10px; color: #1a1a1a;
+    }
+    .draft-meta { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .draft-rationale { font-size: 12px; color: #888; flex: 1; }
+    .draft-copy {
+      font-size: 12px; font-weight: 600; color: #7c3aed; cursor: pointer;
+      background: #f3edff; padding: 4px 12px; border-radius: 6px; border: none;
+    }
+    .draft-copy:hover { background: #e8d5ff; }
+    .draft-copied { color: #00ba7c; background: #f0fdf4; }
+
+    .strategy-box {
+      border: 1px solid #e8e5ff; border-radius: 10px; padding: 20px;
+      background: #faf8ff;
+    }
+    .strategy-row { margin-bottom: 14px; }
+    .strategy-row:last-child { margin-bottom: 0; }
+    .strategy-label { font-size: 12px; font-weight: 600; color: #7c3aed; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .strategy-value { font-size: 14px; color: #333; line-height: 1.5; }
+    .strategy-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+    .strategy-tag {
+      font-size: 12px; padding: 3px 10px; border-radius: 12px;
+      background: #f3edff; color: #7c3aed; font-weight: 500;
+    }
+    .strategy-tag-red {
+      background: #fff0f0; color: #c0392b;
+    }
+
+    /* Tweet table */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th {
+      text-align: left; padding: 10px 12px; background: #f8f8f8;
+      border-bottom: 2px solid #e5e5e5; font-weight: 600; color: #555; white-space: nowrap;
+    }
+    tbody tr { border-bottom: 1px solid #f0f0f0; }
+    tbody tr:hover { background: #fafafa; }
+    tbody td { padding: 10px 12px; vertical-align: top; }
+    .tweet-text { max-width: 380px; line-height: 1.5; }
+    .date { color: #aaa; white-space: nowrap; }
+    .metric { text-align: right; color: #888; }
+    .link a { color: #1D9BF0; text-decoration: none; font-size: 12px; }
+    .link a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+      <path d="M12 7l1.5 3 3.5.5-2.5 2.5.5 3.5L12 15l-3 1.5.5-3.5L7 10.5l3.5-.5z" fill="#7c3aed" stroke="#7c3aed" stroke-width="1.5"/>
+    </svg>
+    <span>MyBookmarks</span>
+  </a>
+  <div class="nav-right">
+    <a href="/logout" class="btn-ghost">Sign out</a>
+  </div>
+</nav>
+
+<div class="tabs">
+  <a href="/" class="tab">Bookmarks</a>
+  <a href="/content" class="tab active">Content Engine</a>
+</div>
+
+<div class="container">
+
+  {% if error %}
+  <div class="error">{{ error }}</div>
+  {% endif %}
+
+  <div class="card">
+    <div class="user-bar">
+      <div class="user-info">
+        <div class="avatar">{{ username[0].upper() }}</div>
+        <div>
+          <div class="user-name">@{{ username }}</div>
+          <div class="user-handle">Content Engine</div>
+        </div>
+      </div>
+      <div class="actions">
+        <a href="/content/fetch" class="btn btn-blue">{% if tweets %}Refresh Tweets{% else %}Load My Tweets{% endif %}</a>
+        {% if tweets_cache %}
+        <form method="POST" action="/content/analyze" style="display:inline">
+          <input type="hidden" name="tweets_cache" value="{{ tweets_cache }}">
+          <button type="submit" class="btn btn-ai" onclick="this.textContent='Analyzing...'; this.style.opacity='0.6'; this.style.pointerEvents='none';">Analyze Performance</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% if analysis %}
+  <div class="card">
+    <h2>Performance Analysis</h2>
+
+    {% if analysis.summary %}
+    <div class="summary-box">{{ analysis.summary }}</div>
+    {% endif %}
+
+    {% if tweets %}
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value">{{ tweets|length }}</div>
+        <div class="stat-label">Tweets Analyzed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ tweets|map(attribute='likes')|sum }}</div>
+        <div class="stat-label">Total Likes</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ tweets|map(attribute='retweets')|sum }}</div>
+        <div class="stat-label">Total Retweets</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ "%.1f"|format(tweets|map(attribute='likes')|sum / tweets|length) }}</div>
+        <div class="stat-label">Avg Likes/Tweet</div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if analysis.top_performers %}
+    <div class="analysis-section">
+      <h3>Top Performers</h3>
+      {% for item in analysis.top_performers %}
+      <div class="perf-item perf-top">
+        <div class="perf-title">{{ item.title }}</div>
+        <div class="perf-reason">{{ item.why }}</div>
+        {% if tweets and item.id and item.id <= tweets|length %}
+        <div class="perf-ref"><a href="{{ tweets[item.id - 1].url }}" target="_blank">View tweet #{{ item.id }}</a></div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if analysis.underperformers %}
+    <div class="analysis-section">
+      <h3>Room for Improvement</h3>
+      {% for item in analysis.underperformers %}
+      <div class="perf-item perf-low">
+        <div class="perf-title">{{ item.title }}</div>
+        <div class="perf-reason">{{ item.why }}</div>
+        {% if tweets and item.id and item.id <= tweets|length %}
+        <div class="perf-ref"><a href="{{ tweets[item.id - 1].url }}" target="_blank">View tweet #{{ item.id }}</a></div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if analysis.patterns %}
+    <div class="analysis-section">
+      <h3>Patterns Detected</h3>
+      {% for p in analysis.patterns %}
+      <div class="pattern-item">
+        <div class="pattern-name">{{ p.pattern }}</div>
+        <div class="pattern-evidence">{{ p.evidence }}</div>
+        <div class="pattern-rec">{{ p.recommendation }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if analysis.content_suggestions %}
+    <div class="analysis-section">
+      <h3>Ready-to-Post Drafts</h3>
+      {% for draft in analysis.content_suggestions %}
+      <div class="draft-card">
+        <div class="draft-text">{{ draft.tweet }}</div>
+        <div class="draft-meta">
+          <div class="draft-rationale">{{ draft.rationale }}</div>
+          <button class="draft-copy" onclick="copyDraft(this, '{{ draft.tweet | replace("'", "\\'") | replace("\n", "\\n") }}')">Copy</button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if analysis.strategy %}
+    <div class="analysis-section">
+      <h3>Your Content Strategy</h3>
+      <div class="strategy-box">
+        {% if analysis.strategy.best_topics %}
+        <div class="strategy-row">
+          <div class="strategy-label">Double down on</div>
+          <div class="strategy-tags">
+            {% for t in analysis.strategy.best_topics %}<span class="strategy-tag">{{ t }}</span>{% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        {% if analysis.strategy.avoid_topics %}
+        <div class="strategy-row">
+          <div class="strategy-label">Deprioritize</div>
+          <div class="strategy-tags">
+            {% for t in analysis.strategy.avoid_topics %}<span class="strategy-tag strategy-tag-red">{{ t }}</span>{% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        {% if analysis.strategy.best_formats %}
+        <div class="strategy-row">
+          <div class="strategy-label">Best formats</div>
+          <div class="strategy-value">{{ analysis.strategy.best_formats | join(', ') if analysis.strategy.best_formats is iterable and analysis.strategy.best_formats is not string else analysis.strategy.best_formats }}</div>
+        </div>
+        {% endif %}
+        {% if analysis.strategy.posting_advice %}
+        <div class="strategy-row">
+          <div class="strategy-label">Posting advice</div>
+          <div class="strategy-value">{{ analysis.strategy.posting_advice }}</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if tweets %}
+  <div class="card">
+    <h2>Your Tweets ({{ tweets|length }})</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Tweet</th>
+          <th>Date</th>
+          <th style="text-align:right">Likes</th>
+          <th style="text-align:right">RTs</th>
+          <th style="text-align:right">Replies</th>
+          <th>Link</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tw in tweets %}
+        <tr>
+          <td style="color:#ccc">{{ loop.index }}</td>
+          <td class="tweet-text">{{ tw.text }}</td>
+          <td class="date">{{ tw.date }}</td>
+          <td class="metric">{{ tw.likes }}</td>
+          <td class="metric">{{ tw.retweets }}</td>
+          <td class="metric">{{ tw.replies }}</td>
+          <td class="link"><a href="{{ tw.url }}" target="_blank">View</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% elif not analysis %}
+  <div class="card">
+    <div class="empty">Click <strong>Load My Tweets</strong> to pull your recent tweets and analyze performance.</div>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+function copyDraft(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('draft-copied');
+    setTimeout(() => {
+      btn.textContent = 'Copy';
+      btn.classList.remove('draft-copied');
+    }, 2000);
+  });
+}
+</script>
+</body>
+</html>

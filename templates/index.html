@@ -405,6 +405,17 @@
     .filter-label.active { display: inline-flex; }
     .filter-clear { cursor: pointer; font-weight: 700; color: #7c3aed; }
 
+    .tabs {
+      display: flex; gap: 0; background: #fff; border-bottom: 1px solid #e5e5e5;
+      padding: 0 32px;
+    }
+    .tab {
+      padding: 12px 20px; font-size: 14px; font-weight: 600; color: #888;
+      text-decoration: none; border-bottom: 2px solid transparent; transition: all 0.15s;
+    }
+    .tab:hover { color: #333; }
+    .tab.active { color: #7c3aed; border-bottom-color: #7c3aed; }
+
     .error {
       background: #fff0f0;
       border: 1px solid #ffc0c0;
@@ -627,6 +638,10 @@
 
 {% else %}
 <!-- ==================== DASHBOARD ==================== -->
+<div class="tabs">
+  <a href="/" class="tab active">Bookmarks</a>
+  <a href="/content" class="tab">Content Engine</a>
+</div>
 <div class="container">
 
   <!-- Connected state -->
