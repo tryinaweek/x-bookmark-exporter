@@ -131,14 +131,15 @@
     </svg>
     <span>MyBookmarks</span>
   </a>
-  <a href="/logout" class="btn-ghost">Sign out</a>
+  <div style="display:flex;align-items:center;gap:16px;">
+    <a href="/" style="font-size:14px;font-weight:500;color:#888;text-decoration:none;">Dashboard</a>
+    <a href="/bookmarks" style="font-size:14px;font-weight:500;color:#888;text-decoration:none;">Bookmarks</a>
+    <a href="/tweets" style="font-size:14px;font-weight:500;color:#888;text-decoration:none;">Tweets</a>
+    <a href="/compose" style="font-size:14px;font-weight:500;color:#7c3aed;text-decoration:none;">Compose</a>
+    <a href="/drafts" style="font-size:14px;font-weight:500;color:#888;text-decoration:none;">Drafts</a>
+    <a href="/logout" style="font-size:14px;font-weight:500;color:#e0245e;text-decoration:none;">Sign out</a>
+  </div>
 </nav>
-
-<div class="tabs">
-  <a href="/" class="tab">Bookmarks</a>
-  <a href="/content" class="tab">Content Engine</a>
-  <a href="/content/compose" class="tab active">Compose</a>
-</div>
 
 <div class="container">
 
@@ -158,7 +159,7 @@
   <!-- Topic Suggestions -->
   {% if not suggestions %}
   <div class="card" style="text-align:center; padding: 24px;">
-    <form method="POST" action="/content/suggestions">
+    <form method="POST" action="/compose/suggestions">
       <button type="submit" class="btn btn-ai" onclick="this.textContent='Loading ideas...'; this.style.opacity='0.6'; this.style.pointerEvents='none';">Get Today's Content Ideas</button>
     </form>
     <p style="font-size:13px; color:#aaa; margin-top:10px;">AI generates trending topics based on your profile</p>
@@ -188,7 +189,7 @@
   <div class="card" id="compose-card">
     <h2>Write Your Own</h2>
     <p class="card-sub">Enter a topic and let AI craft a scroll-stopping tweet or thread.</p>
-    <form method="POST" action="/content/ai-draft" id="composeForm">
+    <form method="POST" action="/compose/generate" id="composeForm">
       <div class="format-toggle">
         <div class="format-btn {% if format_type != 'thread' %}active{% endif %}" onclick="setFormat(this, 'tweet')">Single Tweet</div>
         <div class="format-btn {% if format_type == 'thread' %}active{% endif %}" onclick="setFormat(this, 'thread')">Thread</div>
@@ -208,7 +209,7 @@
     <h2>{% if drafts|length > 1 %}Thread Preview{% else %}Tweet Preview{% endif %}</h2>
     <p class="card-sub">Edit any tweet below, then post when ready.</p>
 
-    <form method="POST" action="/content/post" id="postForm">
+    <form method="POST" action="/compose/post" id="postForm">
       {% for tweet in drafts %}
         {% if not loop.first and drafts|length > 1 %}
         <div class="thread-connector"></div>
@@ -238,7 +239,7 @@
       <input type="hidden" name="tweets" id="tweetsInput">
 
       <div class="post-actions">
-        <a href="/content/compose" class="btn btn-secondary">Back to Ideas</a>
+        <a href="/compose" class="btn btn-secondary">Back to Ideas</a>
         <button type="button" class="btn btn-secondary" onclick="saveDraft()">Save for Later</button>
         <button type="submit" class="btn btn-blue" onclick="prepareTweets()">
           Post to X
@@ -247,7 +248,7 @@
     </form>
 
     <!-- Hidden save form -->
-    <form method="POST" action="/content/save-draft" id="saveForm" style="display:none">
+    <form method="POST" action="/compose/save" id="saveForm" style="display:none">
       <input type="hidden" name="tweets" id="saveTweetsInput">
       <input type="hidden" name="topic" value="{{ idea or '' }}">
       <input type="hidden" name="format" value="{{ format_type or 'tweet' }}">
@@ -269,12 +270,12 @@
       <div style="font-size: 12px; color: #888; margin-bottom: 12px;">+ {{ draft.tweets|length - 1 }} more tweets in thread</div>
       {% endif %}
       <div style="display: flex; gap: 8px;">
-        <form method="POST" action="/content/post" style="display:inline">
+        <form method="POST" action="/compose/post" style="display:inline">
           <input type="hidden" name="tweets" value="{{ draft.tweets | tojson }}">
           <input type="hidden" name="draft_id" value="{{ draft.id }}">
           <button type="submit" class="btn btn-sm btn-blue">Post to X</button>
         </form>
-        <form method="POST" action="/content/delete-draft/{{ draft.id }}" style="display:inline">
+        <form method="POST" action="/compose/delete/{{ draft.id }}" style="display:inline">
           <button type="submit" class="btn btn-sm btn-secondary" style="color: #e0245e;">Delete</button>
         </form>
       </div>

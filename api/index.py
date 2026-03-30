@@ -28,7 +28,6 @@ AUTH_URL = "https://twitter.com/i/oauth2/authorize"
 TOKEN_URL = "https://api.twitter.com/2/oauth2/token"
 SCOPES = "bookmark.read tweet.read tweet.write users.read offline.access"
 
-# Supabase client
 try:
     sb = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
 except Exception:
@@ -47,28 +46,44 @@ def db_get_or_create_user(x_user_id, username, name, access_token):
             "access_token": access_token, "updated_at": datetime.now(timezone.utc).isoformat(),
         }).eq("x_user_id", x_user_id).execute()
         return existing.data[0]["id"]
-    else:
-        result = sb.table("users").insert({
-            "x_user_id": x_user_id, "username": username,
-            "name": name, "access_token": access_token,
-        }).execute()
-        return result.data[0]["id"] if result.data else None
+    result = sb.table("users").insert({
+        "x_user_id": x_user_id, "username": username,
+        "name": name, "access_token": access_token,
+    }).execute()
+    return result.data[0]["id"] if result.data else None
 
 
-def db_save_cache(table, user_id, data):
+def db_save_cache(table, user_id, data, last_id=None):
     if not sb or not user_id:
         return
     sb.table(table).delete().eq("user_id", user_id).execute()
-    sb.table(table).insert({"user_id": user_id, "data": data}).execute()
+    row = {"user_id": user_id, "data": data}
+    if last_id:
+        row["last_id"] = last_id
+    sb.table(table).insert(row).execute()
 
 
-def db_load_cache(table, user_id):
+def db_load_cache_full(table, user_id):
+    """Returns (data, last_id, fetched_at) or (None, None, None)."""
     if not sb or not user_id:
-        return None
-    result = sb.table(table).select("data, fetched_at").eq("user_id", user_id).order("fetched_at", desc=True).limit(1).execute()
+        return None, None, None
+    result = sb.table(table).select("data, last_id, fetched_at").eq("user_id", user_id).order("fetched_at", desc=True).limit(1).execute()
     if result.data:
-        return result.data[0]["data"]
-    return None
+        row = result.data[0]
+        return row.get("data"), row.get("last_id"), row.get("fetched_at")
+    return None, None, None
+
+
+def db_merge_cache(table, user_id, new_data, last_id):
+    """Merge new data with existing cached data (delta refresh)."""
+    existing, _, _ = db_load_cache_full(table, user_id)
+    if existing:
+        existing_ids = {item["id"] for item in existing}
+        merged = new_data + [item for item in existing if item["id"] not in {n["id"] for n in new_data}]
+    else:
+        merged = new_data
+    db_save_cache(table, user_id, merged, last_id)
+    return merged
 
 
 def db_save_analysis(user_id, analysis_type, data):
@@ -82,9 +97,7 @@ def db_load_analysis(user_id, analysis_type):
     if not sb or not user_id:
         return None
     result = sb.table("analyses").select("data").eq("user_id", user_id).eq("type", analysis_type).order("created_at", desc=True).limit(1).execute()
-    if result.data:
-        return result.data[0]["data"]
-    return None
+    return result.data[0]["data"] if result.data else None
 
 
 def db_save_suggestions(user_id, data):
@@ -97,26 +110,27 @@ def db_save_suggestions(user_id, data):
 def db_load_suggestions(user_id):
     if not sb or not user_id:
         return None
-    result = sb.table("suggestions").select("data, generated_at").eq("user_id", user_id).order("generated_at", desc=True).limit(1).execute()
-    if result.data:
-        return result.data[0]["data"]
-    return None
+    result = sb.table("suggestions").select("data").eq("user_id", user_id).order("generated_at", desc=True).limit(1).execute()
+    return result.data[0]["data"] if result.data else None
 
 
-def db_save_draft(user_id, tweets, fmt, topic, status="draft", scheduled_at=None):
+def db_save_draft(user_id, tweets, fmt, topic, status="draft"):
     if not sb or not user_id:
         return None
     result = sb.table("drafts").insert({
         "user_id": user_id, "tweets": tweets, "format": fmt,
-        "topic": topic, "status": status, "scheduled_at": scheduled_at,
+        "topic": topic, "status": status,
     }).execute()
     return result.data[0]["id"] if result.data else None
 
 
-def db_load_drafts(user_id, status="draft"):
+def db_load_drafts(user_id, status=None):
     if not sb or not user_id:
         return []
-    result = sb.table("drafts").select("*").eq("user_id", user_id).eq("status", status).order("created_at", desc=True).execute()
+    q = sb.table("drafts").select("*").eq("user_id", user_id)
+    if status:
+        q = q.eq("status", status)
+    result = q.order("created_at", desc=True).execute()
     return result.data or []
 
 
@@ -144,35 +158,33 @@ def get_redirect_uri():
 
 def generate_pkce():
     verifier = secrets.token_urlsafe(32)
-    challenge = base64.urlsafe_b64encode(
-        hashlib.sha256(verifier.encode()).digest()
-    ).rstrip(b"=").decode()
+    challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).rstrip(b"=").decode()
     return verifier, challenge
 
 
 def exchange_code(code, verifier):
-    r = requests.post(
-        TOKEN_URL, auth=(CLIENT_ID, CLIENT_SECRET),
-        data={"grant_type": "authorization_code", "code": code,
-              "redirect_uri": get_redirect_uri(), "code_verifier": verifier},
-    )
+    r = requests.post(TOKEN_URL, auth=(CLIENT_ID, CLIENT_SECRET),
+                      data={"grant_type": "authorization_code", "code": code,
+                            "redirect_uri": get_redirect_uri(), "code_verifier": verifier})
     return r.json()
 
 
 def get_me(token):
-    r = requests.get("https://api.twitter.com/2/users/me",
-                      headers={"Authorization": f"Bearer {token}"})
+    r = requests.get("https://api.twitter.com/2/users/me", headers={"Authorization": f"Bearer {token}"})
     d = r.json()
     return d["data"]["id"], d["data"]["username"], d["data"]["name"]
 
 
-def fetch_all_bookmarks(token, user_id):
+def fetch_bookmarks_delta(token, user_id, since_id=None):
+    """Fetch bookmarks. If since_id provided, only fetches newer ones."""
     bookmarks, cursor, api_error = [], None, None
     while True:
         params = {"max_results": 100, "tweet.fields": "created_at,text,author_id,public_metrics",
                   "user.fields": "name,username", "expansions": "author_id"}
         if cursor:
             params["pagination_token"] = cursor
+        if since_id:
+            params["since_id"] = since_id
         r = requests.get(f"https://api.twitter.com/2/users/{user_id}/bookmarks",
                          headers={"Authorization": f"Bearer {token}"}, params=params)
         data = r.json()
@@ -197,7 +209,8 @@ def fetch_all_bookmarks(token, user_id):
     return bookmarks, api_error
 
 
-def fetch_user_tweets(token, user_id):
+def fetch_tweets_delta(token, user_id, since_id=None):
+    """Fetch user tweets. If since_id provided, only fetches newer ones."""
     tweets, cursor, api_error = [], None, None
     pages = 0
     while pages < 5:
@@ -205,6 +218,8 @@ def fetch_user_tweets(token, user_id):
                   "exclude": "retweets,replies"}
         if cursor:
             params["pagination_token"] = cursor
+        if since_id:
+            params["since_id"] = since_id
         r = requests.get(f"https://api.twitter.com/2/users/{user_id}/tweets",
                          headers={"Authorization": f"Bearer {token}"}, params=params)
         data = r.json()
@@ -230,14 +245,43 @@ def fetch_user_tweets(token, user_id):
 
 # -- AI helpers ------------------------------------------------------------
 
+PROFILE_CONTEXT = """Profile: Angel investor, operator, and tech founder.
+Focus areas: AI agents, Claude Code, no-code/low-code, SaaS, startups, entrepreneurship, building in public.
+Voice: Direct, practical, experience-driven. Shares frameworks, lessons learned, and actionable insights.
+Audience: Founders, builders, developers, AI enthusiasts, indie hackers."""
+
+FORMATTING_RULES = """FORMATTING (Justin Welsh / Sahil Bloom style):
+- Line breaks generously. One idea per line. Short sentences. Punchy rhythm.
+- Hook -> Context -> Insight -> CTA. Pattern interrupts and bold claims.
+- Bullet points with line breaks. Numbers and specifics beat vague claims.
+- End with engagement drivers: questions, "Bookmark this.", "RT to help others."
+- Threads: First tweet = HOOK (no number). Last = CTA + value summary. Use 2/, 3/ etc.
+- Each tweet stands alone as valuable. Under 280 chars each."""
+
+
+def _call_claude(prompt, max_tokens=4096):
+    client = anthropic.Anthropic(api_key=CLAUDE_API_KEY)
+    message = client.messages.create(
+        model="claude-sonnet-4-20250514", max_tokens=max_tokens,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    try:
+        raw = message.content[0].text
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1].rsplit("```", 1)[0]
+        return json.loads(raw), None
+    except (json.JSONDecodeError, IndexError, KeyError) as e:
+        return None, f"Failed to parse AI response: {e}"
+
+
 def analyze_bookmarks(bookmarks, username=""):
     if not CLAUDE_API_KEY:
         return None, "CLAUDE_API_KEY not configured"
     condensed = [f"[{i}] ({bm['date']}) @{bm['username']}: {bm['text'][:280]}" for i, bm in enumerate(bookmarks, 1)]
-    user_ref = f"@{username}'s" if username else "This person's"
-    prompt = f"""Analyze these {len(bookmarks)} X/Twitter bookmarks belonging to {user_ref}. Return ONLY valid JSON:
-{{"summary":"...","categories":[{{"name":"...","count":5,"bookmark_ids":[1,5],"summary":"..."}}],"timeline":[{{"period":"...","theme":"...","count":15,"bookmark_ids":[1,2]}}],"gems":[{{"id":5,"title":"...","reason":"..."}}],"stale":[{{"id":12,"title":"...","reason":"..."}}],"actions":[{{"text":"...","bookmark_ids":[20,50]}}]}}
-Rules: summary uses you/your, mention {user_ref} once. 5-8 categories. 3-5 timeline phases with count. 5-10 gems. stale items. 3-5 actions with bookmark_ids.
+    user_ref = f"@{username}" if username else "user"
+    prompt = f"""Analyze these {len(bookmarks)} X/Twitter bookmarks for {user_ref}. Return ONLY valid JSON:
+{{"summary":"2-3 sentences using you/your","categories":[{{"name":"...","count":5,"bookmark_ids":[1,5],"summary":"..."}}],"timeline":[{{"period":"...","theme":"...","count":15,"bookmark_ids":[1,2]}}],"gems":[{{"id":5,"title":"...","reason":"..."}}],"stale":[{{"id":12,"title":"...","reason":"..."}}],"actions":[{{"text":"...","bookmark_ids":[20,50]}}]}}
+Rules: 5-8 categories, 3-5 timeline phases with count, 5-10 gems, stale items, 3-5 actions with bookmark_ids. Use you/your.
 Bookmarks:\n""" + "\n".join(condensed)
     return _call_claude(prompt)
 
@@ -248,32 +292,63 @@ def analyze_tweets(tweets, username=""):
     condensed = [f"[{i}] ({tw['date']}) {tw['text'][:280]} | L:{tw['likes']} RT:{tw['retweets']} R:{tw['replies']} I:{tw['impressions']}" for i, tw in enumerate(tweets, 1)]
     prompt = f"""Analyze these {len(tweets)} tweets from @{username}. Return ONLY valid JSON:
 {{"summary":"...","top_performers":[{{"id":1,"title":"...","why":"..."}}],"underperformers":[{{"id":5,"title":"...","why":"..."}}],"patterns":[{{"pattern":"...","evidence":"...","recommendation":"..."}}],"content_suggestions":[{{"tweet":"...","based_on":[1],"rationale":"..."}}],"strategy":{{"best_topics":["..."],"avoid_topics":["..."],"best_formats":["..."],"posting_advice":"..."}}}}
-Rules: 5-8 top performers, 3-5 underperformers, 3-5 patterns, 5-8 content suggestions under 280 chars, concrete strategy. Use you/your.
+Rules: 5-8 top, 3-5 under, 3-5 patterns, 5-8 suggestions under 280 chars, strategy. Use you/your.
 Tweets:\n""" + "\n".join(condensed)
     return _call_claude(prompt)
 
 
-PROFILE_CONTEXT = """Profile: Angel investor, operator, and tech founder.
-Focus areas: AI agents, Claude Code, no-code/low-code, SaaS, startups, entrepreneurship, building in public.
-Voice: Direct, practical, experience-driven. Shares frameworks, lessons learned, and actionable insights.
-Audience: Founders, builders, developers, AI enthusiasts, indie hackers."""
-
-FORMATTING_RULES = """FORMATTING (Justin Welsh / Sahil Bloom style):
-- Line breaks generously. One idea per line. Short sentences. Punchy rhythm.
-- Hook → Context → Insight → CTA. Pattern interrupts and bold claims.
-- Bullet points with line breaks. Numbers and specifics beat vague claims.
-- End with engagement drivers: questions, "Bookmark this.", "RT to help others."
-- Threads: First tweet = HOOK (no number). Last = CTA + value summary. Use 2/, 3/ etc.
-- Each tweet stands alone as valuable. Under 280 chars each."""
-
-
-def generate_topic_suggestions(username):
+def generate_smart_suggestions(username, db_uid):
+    """Generate suggestions using bookmark interests + tweet patterns + trends."""
     if not CLAUDE_API_KEY:
         return []
-    prompt = f"""Twitter/X content strategist for @{username}. {PROFILE_CONTEXT}
-Generate 8 tweet/thread ideas for RIGHT NOW (March 2026). Return ONLY valid JSON:
-{{"suggestions":[{{"topic":"5-8 words","hook":"Opening line","format":"tweet or thread","why":"1 sentence"}}]}}
-Rules: 4 timely/trending + 4 evergreen. Justin Welsh/Sahil Bloom style hooks. Each must stop the scroll."""
+
+    # Gather intelligence
+    bookmark_analysis = db_load_analysis(db_uid, "bookmarks")
+    tweet_analysis = db_load_analysis(db_uid, "tweets")
+
+    context_parts = [PROFILE_CONTEXT]
+
+    if bookmark_analysis:
+        cats = bookmark_analysis.get("categories", [])
+        if cats:
+            topics = ", ".join(c["name"] for c in cats[:5])
+            context_parts.append(f"Current bookmark interests: {topics}")
+
+    if tweet_analysis:
+        strategy = tweet_analysis.get("strategy", {})
+        if strategy.get("best_topics"):
+            context_parts.append(f"Top performing tweet topics: {', '.join(strategy['best_topics'])}")
+        if strategy.get("best_formats"):
+            fmts = strategy["best_formats"]
+            if isinstance(fmts, list):
+                context_parts.append(f"Best tweet formats: {', '.join(fmts)}")
+            else:
+                context_parts.append(f"Best tweet formats: {fmts}")
+        patterns = tweet_analysis.get("patterns", [])
+        if patterns:
+            context_parts.append(f"Proven patterns: {patterns[0].get('pattern', '')}")
+
+    full_context = "\n".join(context_parts)
+
+    prompt = f"""Twitter/X content strategist for @{username}.
+
+{full_context}
+
+Generate 8 tweet/thread ideas that would perform well RIGHT NOW (March 2026).
+These ideas should combine:
+1. The user's current interests (from their bookmarks)
+2. What works for their audience (from their tweet performance)
+3. Trending topics in AI, tech, startups this week
+
+Return ONLY valid JSON:
+{{"suggestions":[{{"topic":"5-8 words","hook":"Opening line that stops the scroll","format":"tweet or thread","why":"Why this would work based on their data + trends"}}]}}
+
+Rules:
+- 4 timely/trending ideas aligned with their interests
+- 4 evergreen ideas based on proven engagement patterns
+- Hooks in Justin Welsh / Sahil Bloom style
+- Each idea should feel personalized, not generic"""
+
     try:
         result, _ = _call_claude(prompt, max_tokens=2048)
         return result.get("suggestions", []) if result else []
@@ -295,27 +370,12 @@ Write 5-8 tweets. First = pure hook. Last = CTA. Each under 280 chars."""
 {PROFILE_CONTEXT}
 Return ONLY valid JSON: {{"tweets":["The tweet"]}}
 {FORMATTING_RULES}
-Under 280 chars. One clear idea. Strong hook. Engagement driver at end."""
+Under 280 chars. Strong hook. Engagement driver at end."""
     try:
         result, _ = _call_claude(prompt, max_tokens=2048)
         return result.get("tweets", []) if result else []
     except Exception:
         return []
-
-
-def _call_claude(prompt, max_tokens=4096):
-    client = anthropic.Anthropic(api_key=CLAUDE_API_KEY)
-    message = client.messages.create(
-        model="claude-sonnet-4-20250514", max_tokens=max_tokens,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    try:
-        raw = message.content[0].text
-        if raw.startswith("```"):
-            raw = raw.split("\n", 1)[1].rsplit("```", 1)[0]
-        return json.loads(raw), None
-    except (json.JSONDecodeError, IndexError, KeyError) as e:
-        return None, f"Failed to parse AI response: {e}"
 
 
 def build_excel(bookmarks):
@@ -339,23 +399,48 @@ def build_excel(bookmarks):
     return buf
 
 
+def _safe_db(fn, *args, **kwargs):
+    """Wrap DB calls so failures don't crash pages."""
+    try:
+        return fn(*args, **kwargs)
+    except Exception:
+        return None
+
+
 # -- routes ----------------------------------------------------------------
 
 @app.route("/")
 def index():
+    """Dashboard - unified home page."""
     configured = bool(CLIENT_ID and CLIENT_SECRET)
     if not session.get("access_token"):
-        return render_template("index.html", configured=configured, connected=False, username="", bookmarks=None)
+        return render_template("index.html", configured=configured, connected=False)
 
-    uid = session.get("db_user_id")
-    bookmarks, analysis = None, None
+    db_uid = session.get("db_user_id")
+
+    # Load all cached data
+    bm_data, bm_last_id, bm_fetched = (None, None, None)
+    tw_data, tw_last_id, tw_fetched = (None, None, None)
     try:
-        bookmarks = db_load_cache("bookmarks_cache", uid)
-        analysis = db_load_analysis(uid, "bookmarks")
+        bm_data, bm_last_id, bm_fetched = db_load_cache_full("bookmarks_cache", db_uid)
+        tw_data, tw_last_id, tw_fetched = db_load_cache_full("tweets_cache", db_uid)
     except Exception:
         pass
-    return render_template("index.html", configured=configured, connected=True,
-                           username=session.get("username", ""), bookmarks=bookmarks, analysis=analysis)
+
+    bm_analysis = _safe_db(db_load_analysis, db_uid, "bookmarks")
+    tw_analysis = _safe_db(db_load_analysis, db_uid, "tweets")
+    suggestions = _safe_db(db_load_suggestions, db_uid)
+    drafts = _safe_db(db_load_drafts, db_uid, "draft") or []
+
+    return render_template("dashboard.html",
+        connected=True, username=session.get("username", ""),
+        bookmarks=bm_data, bookmarks_fetched=bm_fetched,
+        bookmarks_count=len(bm_data) if bm_data else 0,
+        tweets=tw_data, tweets_fetched=tw_fetched,
+        tweets_count=len(tw_data) if tw_data else 0,
+        bm_analysis=bm_analysis, tw_analysis=tw_analysis,
+        suggestions=suggestions, drafts=drafts,
+    )
 
 
 @app.route("/connect", methods=["POST"])
@@ -395,139 +480,168 @@ def callback():
     try:
         db_uid = db_get_or_create_user(uid, uname, name, token)
         session["db_user_id"] = db_uid
-    except Exception as e:
+    except Exception:
         session["db_user_id"] = None
     return redirect("/")
 
 
-@app.route("/fetch")
-def fetch():
+@app.route("/sync", methods=["POST"])
+def sync():
+    """Delta sync - fetches only new bookmarks and tweets."""
     token = session.get("access_token")
     uid = session.get("user_id")
     db_uid = session.get("db_user_id")
     if not token or not uid:
         return redirect("/")
-    bookmarks, api_error = fetch_all_bookmarks(token, uid)
-    if bookmarks:
-        db_save_cache("bookmarks_cache", db_uid, bookmarks)
-    error = f"X API error: {api_error}" if api_error else None
-    analysis = db_load_analysis(db_uid, "bookmarks")
-    return render_template("index.html", configured=True, connected=True,
-                           username=session.get("username", ""), bookmarks=bookmarks, analysis=analysis, error=error)
+
+    errors = []
+
+    # Delta bookmarks
+    try:
+        _, bm_last_id, _ = db_load_cache_full("bookmarks_cache", db_uid)
+        new_bm, bm_err = fetch_bookmarks_delta(token, uid, since_id=bm_last_id)
+        if bm_err and not bm_last_id:
+            errors.append(f"Bookmarks: {bm_err}")
+        elif new_bm:
+            latest_id = new_bm[0]["id"]
+            db_merge_cache("bookmarks_cache", db_uid, new_bm, latest_id)
+    except Exception as e:
+        errors.append(f"Bookmarks sync error: {e}")
+
+    # Delta tweets
+    try:
+        _, tw_last_id, _ = db_load_cache_full("tweets_cache", db_uid)
+        new_tw, tw_err = fetch_tweets_delta(token, uid, since_id=tw_last_id)
+        if tw_err and not tw_last_id:
+            errors.append(f"Tweets: {tw_err}")
+        elif new_tw:
+            latest_id = new_tw[0]["id"]
+            db_merge_cache("tweets_cache", db_uid, new_tw, latest_id)
+    except Exception as e:
+        errors.append(f"Tweets sync error: {e}")
+
+    if errors:
+        session["sync_error"] = " | ".join(errors)
+    else:
+        session["sync_status"] = "Sync complete!"
+    return redirect("/")
 
 
-@app.route("/analyze", methods=["POST"])
-def analyze():
+@app.route("/bookmarks")
+def bookmarks_view():
     if not session.get("access_token"):
         return redirect("/")
     db_uid = session.get("db_user_id")
-    bookmarks = db_load_cache("bookmarks_cache", db_uid)
+    bookmarks, _, fetched = (None, None, None)
+    try:
+        bookmarks, _, fetched = db_load_cache_full("bookmarks_cache", db_uid)
+    except Exception:
+        pass
+    analysis = _safe_db(db_load_analysis, db_uid, "bookmarks")
+    return render_template("bookmarks.html", connected=True, username=session.get("username", ""),
+                           bookmarks=bookmarks, analysis=analysis, fetched_at=fetched)
+
+
+@app.route("/bookmarks/analyze", methods=["POST"])
+def bookmarks_analyze():
+    if not session.get("access_token"):
+        return redirect("/")
+    db_uid = session.get("db_user_id")
+    bookmarks, _, fetched = db_load_cache_full("bookmarks_cache", db_uid)
     if not bookmarks:
-        return redirect("/fetch")
+        return redirect("/bookmarks")
     analysis, ai_error = analyze_bookmarks(bookmarks, session.get("username", ""))
     if analysis:
-        db_save_analysis(db_uid, "bookmarks", analysis)
-    error = f"AI analysis error: {ai_error}" if ai_error else None
-    return render_template("index.html", configured=True, connected=True,
-                           username=session.get("username", ""), bookmarks=bookmarks, analysis=analysis, error=error)
+        _safe_db(db_save_analysis, db_uid, "bookmarks", analysis)
+    error = f"AI error: {ai_error}" if ai_error else None
+    return render_template("bookmarks.html", connected=True, username=session.get("username", ""),
+                           bookmarks=bookmarks, analysis=analysis, fetched_at=fetched, error=error)
 
 
-@app.route("/download", methods=["POST"])
-def download():
+@app.route("/bookmarks/download", methods=["POST"])
+def bookmarks_download():
     if not session.get("access_token"):
         return redirect("/")
     db_uid = session.get("db_user_id")
-    bookmarks = db_load_cache("bookmarks_cache", db_uid)
+    bookmarks, _, _ = db_load_cache_full("bookmarks_cache", db_uid)
     if not bookmarks:
-        return redirect("/fetch")
+        return redirect("/bookmarks")
     buf = build_excel(bookmarks)
     return send_file(buf, as_attachment=True,
                      download_name=f"bookmarks_{session.get('username', 'x')}.xlsx",
                      mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
-@app.route("/content")
-def content():
+@app.route("/tweets")
+def tweets_view():
     if not session.get("access_token"):
         return redirect("/")
     db_uid = session.get("db_user_id")
-    tweets = db_load_cache("tweets_cache", db_uid)
-    analysis = db_load_analysis(db_uid, "tweets")
+    tweets, _, fetched = (None, None, None)
+    try:
+        tweets, _, fetched = db_load_cache_full("tweets_cache", db_uid)
+    except Exception:
+        pass
+    analysis = _safe_db(db_load_analysis, db_uid, "tweets")
     return render_template("content.html", connected=True, username=session.get("username", ""),
-                           tweets=tweets, analysis=analysis)
+                           tweets=tweets, analysis=analysis, fetched_at=fetched)
 
 
-@app.route("/content/fetch")
-def content_fetch():
-    token = session.get("access_token")
-    uid = session.get("user_id")
-    db_uid = session.get("db_user_id")
-    if not token or not uid:
-        return redirect("/")
-    tweets, api_error = fetch_user_tweets(token, uid)
-    if tweets:
-        db_save_cache("tweets_cache", db_uid, tweets)
-    error = f"X API error: {api_error}" if api_error else None
-    analysis = db_load_analysis(db_uid, "tweets")
-    return render_template("content.html", connected=True, username=session.get("username", ""),
-                           tweets=tweets, analysis=analysis, error=error)
-
-
-@app.route("/content/analyze", methods=["POST"])
-def content_analyze():
+@app.route("/tweets/analyze", methods=["POST"])
+def tweets_analyze():
     if not session.get("access_token"):
         return redirect("/")
     db_uid = session.get("db_user_id")
-    tweets = db_load_cache("tweets_cache", db_uid)
+    tweets, _, fetched = db_load_cache_full("tweets_cache", db_uid)
     if not tweets:
-        return redirect("/content/fetch")
+        return redirect("/tweets")
     analysis, ai_error = analyze_tweets(tweets, session.get("username", ""))
     if analysis:
-        db_save_analysis(db_uid, "tweets", analysis)
-    error = f"AI analysis error: {ai_error}" if ai_error else None
+        _safe_db(db_save_analysis, db_uid, "tweets", analysis)
+    error = f"AI error: {ai_error}" if ai_error else None
     return render_template("content.html", connected=True, username=session.get("username", ""),
-                           tweets=tweets, analysis=analysis, error=error)
+                           tweets=tweets, analysis=analysis, fetched_at=fetched, error=error)
 
 
-@app.route("/content/compose")
-def content_compose():
+@app.route("/compose")
+def compose():
     if not session.get("access_token"):
         return redirect("/")
     db_uid = session.get("db_user_id")
-    suggestions = db_load_suggestions(db_uid)
-    drafts_list = db_load_drafts(db_uid)
+    suggestions = _safe_db(db_load_suggestions, db_uid)
+    drafts_list = _safe_db(db_load_drafts, db_uid, "draft") or []
     return render_template("compose.html", connected=True, username=session.get("username", ""),
                            suggestions=suggestions, saved_drafts=drafts_list)
 
 
-@app.route("/content/suggestions", methods=["POST"])
-def content_suggestions():
+@app.route("/compose/suggestions", methods=["POST"])
+def compose_suggestions():
     if not session.get("access_token"):
         return redirect("/")
     db_uid = session.get("db_user_id")
-    suggestions = generate_topic_suggestions(session.get("username", ""))
+    suggestions = generate_smart_suggestions(session.get("username", ""), db_uid)
     if suggestions:
-        db_save_suggestions(db_uid, suggestions)
-    drafts_list = db_load_drafts(db_uid)
+        _safe_db(db_save_suggestions, db_uid, suggestions)
+    drafts_list = _safe_db(db_load_drafts, db_uid, "draft") or []
     return render_template("compose.html", connected=True, username=session.get("username", ""),
                            suggestions=suggestions, saved_drafts=drafts_list)
 
 
-@app.route("/content/ai-draft", methods=["POST"])
-def content_ai_draft():
+@app.route("/compose/generate", methods=["POST"])
+def compose_generate():
     if not session.get("access_token"):
         return redirect("/")
     idea = request.form.get("idea", "").strip()
     format_type = request.form.get("format", "tweet")
     if not idea:
-        return redirect("/content/compose")
+        return redirect("/compose")
     drafts = generate_draft(session.get("username", ""), idea, format_type)
     return render_template("compose.html", connected=True, username=session.get("username", ""),
                            drafts=drafts, idea=idea, format_type=format_type)
 
 
-@app.route("/content/save-draft", methods=["POST"])
-def content_save_draft():
+@app.route("/compose/save", methods=["POST"])
+def compose_save():
     if not session.get("access_token"):
         return redirect("/")
     db_uid = session.get("db_user_id")
@@ -537,22 +651,22 @@ def content_save_draft():
     try:
         tweets = json.loads(tweets_json)
     except json.JSONDecodeError:
-        return redirect("/content/compose")
+        return redirect("/compose")
     if tweets:
-        db_save_draft(db_uid, tweets, fmt, topic)
-    return redirect("/content/compose")
+        _safe_db(db_save_draft, db_uid, tweets, fmt, topic)
+    return redirect("/compose")
 
 
-@app.route("/content/delete-draft/<draft_id>", methods=["POST"])
-def content_delete_draft(draft_id):
+@app.route("/compose/delete/<draft_id>", methods=["POST"])
+def compose_delete(draft_id):
     if not session.get("access_token"):
         return redirect("/")
-    db_delete_draft(draft_id, session.get("db_user_id"))
-    return redirect("/content/compose")
+    _safe_db(db_delete_draft, draft_id, session.get("db_user_id"))
+    return redirect("/compose")
 
 
-@app.route("/content/post", methods=["POST"])
-def content_post():
+@app.route("/compose/post", methods=["POST"])
+def compose_post():
     token = session.get("access_token")
     if not token:
         return redirect("/")
@@ -561,9 +675,9 @@ def content_post():
     try:
         tweets = json.loads(tweets_json)
     except json.JSONDecodeError:
-        return redirect("/content/compose")
+        return redirect("/compose")
     if not tweets:
-        return redirect("/content/compose")
+        return redirect("/compose")
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     posted, reply_to = [], None
     for tweet_text in tweets:
@@ -579,11 +693,23 @@ def content_post():
             return render_template("compose.html", connected=True, username=session.get("username", ""),
                                    error=f"Post failed: {data}", drafts=tweets)
     if draft_id:
-        db_mark_posted(draft_id, session.get("db_user_id"))
+        _safe_db(db_mark_posted, draft_id, session.get("db_user_id"))
     first_id = posted[0] if posted else ""
     return render_template("compose.html", connected=True, username=session.get("username", ""),
                            success=True, posted_url=f"https://twitter.com/{session.get('username', '')}/status/{first_id}",
                            posted_count=len(posted))
+
+
+@app.route("/drafts")
+def drafts_view():
+    if not session.get("access_token"):
+        return redirect("/")
+    db_uid = session.get("db_user_id")
+    all_drafts = _safe_db(db_load_drafts, db_uid) or []
+    draft_list = [d for d in all_drafts if d.get("status") == "draft"]
+    posted_list = [d for d in all_drafts if d.get("status") == "posted"]
+    return render_template("drafts.html", connected=True, username=session.get("username", ""),
+                           drafts=draft_list, posted=posted_list)
 
 
 @app.route("/logout")

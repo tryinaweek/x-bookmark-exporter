@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drafts - MyBookmarks</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f5f5; color: #1a1a1a; min-height: 100vh; }
+    nav { background: #fff; border-bottom: 1px solid #f0f0f0; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; }
+    .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #1a1a1a; }
+    .nav-brand svg { width: 22px; height: 22px; }
+    .nav-brand span { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .nav-link { font-size: 14px; font-weight: 500; color: #888; text-decoration: none; }
+    .nav-link:hover { color: #333; }
+    .nav-link.active { color: #7c3aed; }
+    .container { max-width: 720px; margin: 32px auto; padding: 0 24px; }
+    .page-title { font-size: 24px; font-weight: 700; margin-bottom: 24px; }
+    .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    .card h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: #444; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; text-decoration: none; transition: all 0.15s; }
+    .btn:hover { opacity: 0.88; }
+    .btn-blue { background: #1D9BF0; color: #fff; }
+    .btn-secondary { background: #f5f5f5; color: #333; border: 1px solid #e5e5e5; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .empty { text-align: center; padding: 60px 20px; color: #aaa; font-size: 14px; }
+
+    .draft-card { border: 1px solid #e5e5e5; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+    .draft-card:last-child { margin-bottom: 0; }
+    .draft-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .draft-topic { font-weight: 600; font-size: 14px; }
+    .draft-date { font-size: 12px; color: #aaa; }
+    .draft-badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+    .badge-draft { background: #f3edff; color: #7c3aed; }
+    .badge-posted { background: #f0fdf4; color: #166534; }
+    .draft-tweets { margin-bottom: 14px; }
+    .draft-tweet { font-size: 14px; line-height: 1.6; color: #333; padding: 10px 14px; background: #fafafa; border-radius: 8px; margin-bottom: 6px; white-space: pre-wrap; }
+    .draft-tweet:last-child { margin-bottom: 0; }
+    .draft-actions { display: flex; gap: 8px; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+      <path d="M12 7l1.5 3 3.5.5-2.5 2.5.5 3.5L12 15l-3 1.5.5-3.5L7 10.5l3.5-.5z" fill="#7c3aed" stroke="#7c3aed" stroke-width="1.5"/>
+    </svg>
+    <span>MyBookmarks</span>
+  </a>
+  <div class="nav-right">
+    <a href="/" class="nav-link">Dashboard</a>
+    <a href="/bookmarks" class="nav-link">Bookmarks</a>
+    <a href="/tweets" class="nav-link">Tweets</a>
+    <a href="/compose" class="nav-link">Compose</a>
+    <a href="/drafts" class="nav-link active">Drafts</a>
+    <a href="/logout" class="nav-link" style="color:#e0245e;">Sign out</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <h1 class="page-title">Your Drafts</h1>
+
+  {% if drafts %}
+  <div class="card">
+    <h2>Ready to Post ({{ drafts|length }})</h2>
+    {% for draft in drafts %}
+    <div class="draft-card">
+      <div class="draft-header">
+        <div>
+          <span class="draft-topic">{{ draft.topic or 'Untitled' }}</span>
+          <span class="draft-badge badge-draft">{{ draft.format }}</span>
+        </div>
+        <div class="draft-date">{{ draft.created_at[:10] if draft.created_at else '' }}</div>
+      </div>
+      <div class="draft-tweets">
+        {% for tweet in draft.tweets %}
+        <div class="draft-tweet">{{ tweet }}</div>
+        {% endfor %}
+      </div>
+      <div class="draft-actions">
+        <form method="POST" action="/compose/post" style="display:inline">
+          <input type="hidden" name="tweets" value="{{ draft.tweets | tojson }}">
+          <input type="hidden" name="draft_id" value="{{ draft.id }}">
+          <button type="submit" class="btn btn-sm btn-blue">Post to X</button>
+        </form>
+        <form method="POST" action="/compose/delete/{{ draft.id }}" style="display:inline">
+          <button type="submit" class="btn btn-sm btn-secondary" style="color:#e0245e;">Delete</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card">
+    <div class="empty">No drafts saved yet. <a href="/compose" style="color:#7c3aed;">Create some content</a> and save for later.</div>
+  </div>
+  {% endif %}
+
+  {% if posted %}
+  <div class="card">
+    <h2>Posted ({{ posted|length }})</h2>
+    {% for draft in posted %}
+    <div class="draft-card" style="opacity: 0.7;">
+      <div class="draft-header">
+        <div>
+          <span class="draft-topic">{{ draft.topic or 'Untitled' }}</span>
+          <span class="draft-badge badge-posted">posted</span>
+        </div>
+        <div class="draft-date">{{ draft.posted_at[:10] if draft.posted_at else draft.created_at[:10] if draft.created_at else '' }}</div>
+      </div>
+      <div class="draft-tweets">
+        <div class="draft-tweet">{{ draft.tweets[0] if draft.tweets else '' }}</div>
+        {% if draft.tweets|length > 1 %}
+        <div style="font-size:12px; color:#888; padding: 4px 14px;">+ {{ draft.tweets|length - 1 }} more in thread</div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+</div>
+</body>
+</html>

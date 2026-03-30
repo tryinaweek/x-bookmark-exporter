@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - MyBookmarks</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f5f5; color: #1a1a1a; min-height: 100vh; }
+    nav { background: #fff; border-bottom: 1px solid #f0f0f0; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; }
+    .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #1a1a1a; }
+    .nav-brand svg { width: 22px; height: 22px; }
+    .nav-brand span { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .nav-link { font-size: 14px; font-weight: 500; color: #888; text-decoration: none; }
+    .nav-link:hover { color: #333; }
+    .nav-link.active { color: #7c3aed; }
+
+    .container { max-width: 960px; margin: 32px auto; padding: 0 24px; }
+    .page-title { font-size: 24px; font-weight: 700; margin-bottom: 24px; }
+
+    .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    .card h2 { font-size: 15px; font-weight: 600; color: #444; margin-bottom: 16px; }
+    .card h3 { font-size: 14px; font-weight: 600; color: #333; margin-bottom: 10px; }
+
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; text-decoration: none; transition: all 0.15s; }
+    .btn:hover { opacity: 0.88; }
+    .btn-ai { background: #7c3aed; color: #fff; }
+    .btn-blue { background: #1D9BF0; color: #fff; }
+    .btn-success { background: #00ba7c; color: #fff; }
+    .btn-secondary { background: #f5f5f5; color: #333; border: 1px solid #e5e5e5; }
+    .btn-danger { background: #fff; color: #e0245e; border: 1px solid #e5e5e5; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+    .error { background: #fff0f0; border: 1px solid #ffc0c0; border-radius: 8px; padding: 12px 16px; color: #c0392b; font-size: 13px; margin-bottom: 16px; }
+    .success-msg { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; color: #166534; font-size: 13px; margin-bottom: 16px; }
+
+    /* Overview grid */
+    .overview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+    @media (max-width: 640px) { .overview-grid { grid-template-columns: 1fr; } }
+    .overview-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 20px; text-decoration: none; color: inherit; transition: border-color 0.15s, box-shadow 0.15s; }
+    .overview-card:hover { border-color: #7c3aed; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+    .overview-icon { font-size: 24px; margin-bottom: 12px; }
+    .overview-value { font-size: 28px; font-weight: 800; color: #1a1a1a; }
+    .overview-label { font-size: 13px; color: #888; margin-top: 2px; }
+    .overview-meta { font-size: 11px; color: #bbb; margin-top: 8px; }
+    .overview-link { font-size: 12px; color: #7c3aed; font-weight: 600; margin-top: 8px; display: inline-block; }
+
+    /* Sync bar */
+    .sync-bar { display: flex; align-items: center; justify-content: space-between; background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; }
+    .sync-info { font-size: 13px; color: #888; }
+    .sync-info strong { color: #1a1a1a; }
+    .sync-confirm { display: none; align-items: center; gap: 10px; font-size: 13px; color: #854d0e; }
+    .sync-confirm.show { display: flex; }
+
+    /* Suggestions */
+    .suggestion-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 600px) { .suggestion-grid { grid-template-columns: 1fr; } }
+    .suggestion-card { border: 1px solid #f0f0f0; border-radius: 10px; padding: 14px; transition: border-color 0.15s; }
+    .suggestion-card:hover { border-color: #7c3aed; }
+    .suggestion-topic { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+    .suggestion-hook { font-size: 12px; color: #666; line-height: 1.4; margin-bottom: 8px; font-style: italic; }
+    .suggestion-meta { display: flex; justify-content: space-between; align-items: center; }
+    .badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+    .badge-tweet { background: #e8f4fd; color: #1D9BF0; }
+    .badge-thread { background: #f3edff; color: #7c3aed; }
+
+    /* Drafts */
+    .draft-item { border: 1px solid #f0f0f0; border-radius: 10px; padding: 14px; margin-bottom: 10px; }
+    .draft-item:last-child { margin-bottom: 0; }
+    .draft-meta { font-size: 12px; color: #aaa; margin-bottom: 6px; }
+    .draft-text { font-size: 13px; line-height: 1.5; color: #333; margin-bottom: 10px; white-space: pre-wrap; }
+    .draft-actions { display: flex; gap: 8px; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+      <path d="M12 7l1.5 3 3.5.5-2.5 2.5.5 3.5L12 15l-3 1.5.5-3.5L7 10.5l3.5-.5z" fill="#7c3aed" stroke="#7c3aed" stroke-width="1.5"/>
+    </svg>
+    <span>MyBookmarks</span>
+  </a>
+  <div class="nav-right">
+    <a href="/" class="nav-link active">Dashboard</a>
+    <a href="/bookmarks" class="nav-link">Bookmarks</a>
+    <a href="/tweets" class="nav-link">Tweets</a>
+    <a href="/compose" class="nav-link">Compose</a>
+    <a href="/drafts" class="nav-link">Drafts</a>
+    <a href="/logout" class="nav-link" style="color:#e0245e;">Sign out</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  {% if session.get('sync_error') %}
+  <div class="error">{{ session.pop('sync_error') }}</div>
+  {% endif %}
+  {% if session.get('sync_status') %}
+  <div class="success-msg">{{ session.pop('sync_status') }}</div>
+  {% endif %}
+
+  <h1 class="page-title">Welcome back, @{{ username }}</h1>
+
+  <!-- Overview Cards -->
+  <div class="overview-grid">
+    <a href="/bookmarks" class="overview-card">
+      <div class="overview-icon">&#x1f516;</div>
+      <div class="overview-value">{{ bookmarks_count }}</div>
+      <div class="overview-label">Bookmarks</div>
+      {% if bookmarks_fetched %}
+      <div class="overview-meta">Synced: {{ bookmarks_fetched[:10] }}</div>
+      {% endif %}
+      <div class="overview-link">{% if bm_analysis %}View analysis{% else %}{% if bookmarks_count > 0 %}Analyze{% else %}Load bookmarks{% endif %}{% endif %} &rarr;</div>
+    </a>
+    <a href="/tweets" class="overview-card">
+      <div class="overview-icon">&#x1f4ac;</div>
+      <div class="overview-value">{{ tweets_count }}</div>
+      <div class="overview-label">Tweets</div>
+      {% if tweets_fetched %}
+      <div class="overview-meta">Synced: {{ tweets_fetched[:10] }}</div>
+      {% endif %}
+      <div class="overview-link">{% if tw_analysis %}View analysis{% else %}{% if tweets_count > 0 %}Analyze{% else %}Load tweets{% endif %}{% endif %} &rarr;</div>
+    </a>
+    <a href="/drafts" class="overview-card">
+      <div class="overview-icon">&#x270f;&#xfe0f;</div>
+      <div class="overview-value">{{ drafts|length }}</div>
+      <div class="overview-label">Saved Drafts</div>
+      <div class="overview-link">View all &rarr;</div>
+    </a>
+  </div>
+
+  <!-- Sync Bar -->
+  <div class="sync-bar" id="syncBar">
+    <div class="sync-info">
+      <strong>Data Sync</strong> &mdash;
+      {% if bookmarks_fetched or tweets_fetched %}
+        Last synced {{ (bookmarks_fetched or tweets_fetched)[:10] }}. Only fetches new data since last sync.
+      {% else %}
+        No data loaded yet. First sync will fetch all your bookmarks and tweets.
+      {% endif %}
+    </div>
+    <div>
+      <button class="btn btn-secondary btn-sm" onclick="showConfirm()" id="syncBtn">Sync new data</button>
+      <div class="sync-confirm" id="syncConfirm">
+        <span>This calls the X API (uses credits). Continue?</span>
+        <form method="POST" action="/sync" style="display:inline">
+          <button type="submit" class="btn btn-blue btn-sm">Yes, sync</button>
+        </form>
+        <button class="btn btn-secondary btn-sm" onclick="hideConfirm()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Smart Content Ideas -->
+  <div class="card">
+    <h2>Content Ideas for You</h2>
+    {% if suggestions %}
+    <div class="suggestion-grid">
+      {% for s in suggestions %}
+      <div class="suggestion-card">
+        <div class="suggestion-topic">{{ s.topic }}</div>
+        <div class="suggestion-hook">"{{ s.hook }}"</div>
+        <div class="suggestion-meta">
+          <span class="badge {% if s.format == 'thread' %}badge-thread{% else %}badge-tweet{% endif %}">{{ s.format }}</span>
+          <a href="/compose?idea={{ s.hook | urlencode }}&format={{ s.format }}" class="btn btn-sm btn-ai">Compose</a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <form method="POST" action="/compose/suggestions" style="margin-top: 14px;">
+      <button type="submit" class="btn btn-secondary btn-sm" onclick="this.textContent='Generating...'; this.style.opacity='0.6';">Refresh ideas</button>
+    </form>
+    {% else %}
+    <p style="font-size: 14px; color: #888; margin-bottom: 14px;">
+      {% if bm_analysis or tw_analysis %}
+      Generate personalized content ideas based on your bookmark interests and tweet performance.
+      {% else %}
+      Sync your data first, then generate smart content ideas.
+      {% endif %}
+    </p>
+    <form method="POST" action="/compose/suggestions">
+      <button type="submit" class="btn btn-ai" onclick="this.textContent='Generating ideas...'; this.style.opacity='0.6';">Get content ideas</button>
+    </form>
+    {% endif %}
+  </div>
+
+  {% if drafts %}
+  <!-- Recent Drafts -->
+  <div class="card">
+    <h2>Recent Drafts</h2>
+    {% for draft in drafts[:3] %}
+    <div class="draft-item">
+      <div class="draft-meta">{{ draft.topic or 'Untitled' }} &middot; {{ draft.format }} &middot; {{ draft.created_at[:10] if draft.created_at else '' }}</div>
+      <div class="draft-text">{{ draft.tweets[0][:150] if draft.tweets else '' }}{% if draft.tweets and draft.tweets[0]|length > 150 %}...{% endif %}</div>
+      <div class="draft-actions">
+        <form method="POST" action="/compose/post" style="display:inline">
+          <input type="hidden" name="tweets" value="{{ draft.tweets | tojson }}">
+          <input type="hidden" name="draft_id" value="{{ draft.id }}">
+          <button type="submit" class="btn btn-sm btn-blue">Post to X</button>
+        </form>
+        <a href="/drafts" class="btn btn-sm btn-secondary">Edit</a>
+      </div>
+    </div>
+    {% endfor %}
+    {% if drafts|length > 3 %}
+    <a href="/drafts" style="font-size: 13px; color: #7c3aed; font-weight: 600;">View all {{ drafts|length }} drafts &rarr;</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+function showConfirm() {
+  document.getElementById('syncBtn').style.display = 'none';
+  document.getElementById('syncConfirm').classList.add('show');
+}
+function hideConfirm() {
+  document.getElementById('syncBtn').style.display = '';
+  document.getElementById('syncConfirm').classList.remove('show');
+}
+</script>
+</body>
+</html>

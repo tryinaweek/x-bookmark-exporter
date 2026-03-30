@@ -174,16 +174,15 @@
     </svg>
     <span>MyBookmarks</span>
   </a>
-  <div class="nav-right">
-    <a href="/logout" class="btn-ghost">Sign out</a>
+  <div class="nav-right" style="display:flex;align-items:center;gap:16px;">
+    <a href="/" style="font-size:14px;font-weight:500;color:#888;text-decoration:none;">Dashboard</a>
+    <a href="/bookmarks" style="font-size:14px;font-weight:500;color:#888;text-decoration:none;">Bookmarks</a>
+    <a href="/tweets" style="font-size:14px;font-weight:500;color:#7c3aed;text-decoration:none;">Tweets</a>
+    <a href="/compose" style="font-size:14px;font-weight:500;color:#888;text-decoration:none;">Compose</a>
+    <a href="/drafts" style="font-size:14px;font-weight:500;color:#888;text-decoration:none;">Drafts</a>
+    <a href="/logout" style="font-size:14px;font-weight:500;color:#e0245e;text-decoration:none;">Sign out</a>
   </div>
 </nav>
-
-<div class="tabs">
-  <a href="/" class="tab">Bookmarks</a>
-  <a href="/content" class="tab active">Content Engine</a>
-  <a href="/content/compose" class="tab">Compose</a>
-</div>
 
 <div class="container">
 
@@ -201,10 +200,9 @@
         </div>
       </div>
       <div class="actions">
-        <a href="/content/fetch" class="btn btn-blue">{% if tweets %}Refresh Tweets{% else %}Load My Tweets{% endif %}</a>
         {% if tweets %}
-        <form method="POST" action="/content/analyze" style="display:inline">
-          <button type="submit" class="btn btn-ai" onclick="this.textContent='Analyzing...'; this.style.opacity='0.6'; this.style.pointerEvents='none';">Analyze Performance</button>
+        <form method="POST" action="/tweets/analyze" style="display:inline">
+          <button type="submit" class="btn btn-ai" onclick="this.textContent='Analyzing...'; this.style.opacity='0.6'; this.style.pointerEvents='none';">{% if analysis %}Re-analyze{% else %}Analyze Performance{% endif %}</button>
         </form>
         {% endif %}
       </div>
