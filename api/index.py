@@ -384,6 +384,25 @@ def callback():
     return redirect("/")
 
 
+@app.route("/restore", methods=["POST"])
+def restore():
+    """Restore bookmarks from localStorage cache (no API call)."""
+    if not session.get("access_token"):
+        return redirect("/")
+    cached = request.form.get("bookmarks_cache", "")
+    bookmarks = decode_bookmarks(cached)
+    if not bookmarks:
+        return redirect("/")
+    return render_template(
+        "index.html",
+        configured=True,
+        connected=True,
+        username=session.get("username", ""),
+        bookmarks=bookmarks,
+        bookmarks_cache=cached,
+    )
+
+
 @app.route("/fetch")
 def fetch():
     """Fetch bookmarks from X API (costs credits)."""
@@ -457,6 +476,24 @@ def content():
         connected=True,
         username=session.get("username", ""),
         tweets=None,
+    )
+
+
+@app.route("/content/restore", methods=["POST"])
+def content_restore():
+    """Restore tweets from localStorage cache (no API call)."""
+    if not session.get("access_token"):
+        return redirect("/")
+    cached = request.form.get("tweets_cache", "")
+    tweets = decode_bookmarks(cached)
+    if not tweets:
+        return redirect("/content")
+    return render_template(
+        "content.html",
+        connected=True,
+        username=session.get("username", ""),
+        tweets=tweets,
+        tweets_cache=cached,
     )
 
 
@@ -643,7 +680,11 @@ def content_post():
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect("/")
+    return """<html><body><script>
+localStorage.removeItem('bookmarks_cache');
+localStorage.removeItem('tweets_cache');
+window.location.href='/';
+</script></body></html>"""
 
 
 if __name__ == "__main__":

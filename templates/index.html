@@ -641,6 +641,7 @@
 <div class="tabs">
   <a href="/" class="tab active">Bookmarks</a>
   <a href="/content" class="tab">Content Engine</a>
+  <a href="/content/compose" class="tab">Compose</a>
 </div>
 <div class="container">
 
@@ -892,6 +893,29 @@ function clearFilter() {
   pills.forEach(p => p.classList.remove('active'));
   if (pills.length > 0) pills[0].classList.add('active');
 }
+
+// localStorage caching
+(function() {
+  {% if bookmarks_cache %}
+  // Save cache when data is loaded
+  localStorage.setItem('bookmarks_cache', '{{ bookmarks_cache }}');
+  {% elif connected and not bookmarks %}
+  // Restore from cache if page has no data
+  var cached = localStorage.getItem('bookmarks_cache');
+  if (cached) {
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/restore';
+    var input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'bookmarks_cache';
+    input.value = cached;
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
+  }
+  {% endif %}
+})();
 </script>
 </body>
 </html>

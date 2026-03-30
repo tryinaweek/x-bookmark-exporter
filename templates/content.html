@@ -182,6 +182,7 @@
 <div class="tabs">
   <a href="/" class="tab">Bookmarks</a>
   <a href="/content" class="tab active">Content Engine</a>
+  <a href="/content/compose" class="tab">Compose</a>
 </div>
 
 <div class="container">
@@ -385,6 +386,27 @@ function copyDraft(btn, text) {
     }, 2000);
   });
 }
+
+// localStorage caching
+(function() {
+  {% if tweets_cache %}
+  localStorage.setItem('tweets_cache', '{{ tweets_cache }}');
+  {% elif connected and not tweets %}
+  var cached = localStorage.getItem('tweets_cache');
+  if (cached) {
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/content/restore';
+    var input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'tweets_cache';
+    input.value = cached;
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
+  }
+  {% endif %}
+})();
 </script>
 </body>
 </html>
