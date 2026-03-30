@@ -951,27 +951,47 @@ def settings_save():
 def debug():
     if not session.get("access_token"):
         return redirect("/")
-    db_uid = ensure_db_uid()
     info = {
         "session_user_id": session.get("user_id"),
         "session_username": session.get("username"),
         "session_db_user_id": session.get("db_user_id"),
-        "ensure_db_uid_result": db_uid,
         "supabase_url_set": bool(SUPABASE_URL),
+        "supabase_key_set": bool(SUPABASE_KEY),
     }
-    if db_uid:
-        info["users"] = _sb_get("users", f"id=eq.{db_uid}&select=id,x_user_id,username")
-        bm = _sb_get("bookmarks_cache", f"user_id=eq.{db_uid}&select=last_id,fetched_at")
-        info["bookmarks_rows"] = len(bm)
-        tw = _sb_get("tweets_cache", f"user_id=eq.{db_uid}&select=last_id,fetched_at")
-        info["tweets_rows"] = len(tw)
-        info["drafts"] = _sb_get("drafts", f"user_id=eq.{db_uid}&select=id,topic,status")
-        info["profile"] = bool(_sb_get("user_profile", f"user_id=eq.{db_uid}&select=id"))
+
+    # Test raw REST call
+    x_uid = session.get("user_id")
+    try:
+        test_url = f"{SUPABASE_URL}/rest/v1/users?x_user_id=eq.{x_uid}&select=id"
+        r = req_lib.get(test_url, headers=SB_HEADERS)
+        info["test_get_status"] = r.status_code
+        info["test_get_body"] = r.text[:500]
+    except Exception as e:
+        info["test_get_error"] = str(e)
+
+    # Try insert
+    if not info.get("test_get_body", "").strip().startswith("[{"):
         try:
-            pr = sb.table("user_profile").select("bio, expertise").eq("user_id", db_uid).execute()
-            info["profile_exists"] = bool(pr.data)
+            insert_url = f"{SUPABASE_URL}/rest/v1/users"
+            payload = {"x_user_id": str(x_uid), "username": session.get("username", ""),
+                       "name": session.get("name", ""), "access_token": "redacted"}
+            r2 = req_lib.post(insert_url, headers=SB_HEADERS, json=payload)
+            info["test_insert_status"] = r2.status_code
+            info["test_insert_body"] = r2.text[:500]
+            if r2.status_code in (200, 201):
+                data = r2.json()
+                if data:
+                    session["db_user_id"] = data[0]["id"]
+                    info["new_db_uid"] = data[0]["id"]
         except Exception as e:
-            info["profile_error"] = str(e)
+            info["test_insert_error"] = str(e)
+
+    db_uid = session.get("db_user_id")
+    info["final_db_uid"] = db_uid
+    if db_uid:
+        info["bookmarks_rows"] = len(_sb_get("bookmarks_cache", f"user_id=eq.{db_uid}&select=last_id"))
+        info["tweets_rows"] = len(_sb_get("tweets_cache", f"user_id=eq.{db_uid}&select=last_id"))
+        info["drafts"] = _sb_get("drafts", f"user_id=eq.{db_uid}&select=id,topic,status")
     return f"<html><body><pre>{json.dumps(info, indent=2, default=str)}</pre></body></html>"
 
 
