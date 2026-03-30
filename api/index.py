@@ -330,13 +330,20 @@ Focus areas: AI agents, Claude Code, no-code/low-code, SaaS, startups, entrepren
 Voice: Direct, practical, experience-driven. Shares frameworks, lessons learned, and actionable insights.
 Audience: Founders, builders, developers, AI enthusiasts, indie hackers."""
 
-FORMATTING_RULES = """FORMATTING (Justin Welsh / Sahil Bloom style):
-- Line breaks generously. One idea per line. Short sentences. Punchy rhythm.
-- Hook -> Context -> Insight -> CTA. Pattern interrupts and bold claims.
-- Bullet points with line breaks. Numbers and specifics beat vague claims.
-- End with engagement drivers: questions, "Bookmark this.", "RT to help others."
-- Threads: First tweet = HOOK (no number). Last = CTA + value summary. Use 2/, 3/ etc.
-- Each tweet stands alone as valuable. Under 280 chars each."""
+FORMATTING_RULES = """STRICT FORMATTING RULES:
+- SHORT. PUNCHY. Every sentence earns its place. Cut the fluff ruthlessly.
+- Contrarian opening that challenges conventional wisdom. Start with a bold claim or hot take.
+- Personal proof: back it up with YOUR real experience, specific numbers, actual projects.
+- One-line closer that hits hard. Not a paragraph. ONE line.
+- Lists: MAX 3-5 items. Never 7+. Each item is one tight line, not a paragraph.
+- Line breaks between every thought. White space is your weapon.
+- NO generic advice. NO "here's what I learned" followed by obvious points.
+- Every post must have a SPECIFIC detail that only YOU would know (project names, dollar amounts, real outcomes).
+- Structure: Hook (1 line) -> Proof (2-3 lines) -> Insight (1-2 lines) -> Closer (1 line)
+- Threads: First tweet = pure hook, no number. Keep to 4-6 tweets max. Each tweet is TIGHT.
+- Under 280 chars per tweet. Shorter is better. The best tweets are under 200 chars.
+- End with a sharp question or a bold one-liner. NOT "Bookmark this" or "RT to help others."
+- Tone: confident, direct, from experience. Not lecturing. Sharing."""
 
 
 def _call_claude(prompt, max_tokens=4096):
@@ -438,17 +445,16 @@ Rules:
 
 
 LINKEDIN_FORMATTING = """LINKEDIN FORMATTING:
-- Start with a bold hook line that stops the scroll (1 short sentence)
-- Add a blank line after the hook
-- Use short paragraphs (1-2 sentences each) with blank lines between
-- Use storytelling: situation -> challenge -> insight -> lesson
-- Include specific numbers, results, or timeframes
-- End with a question or call to engage ("What's your experience?" / "Agree? Drop a comment.")
-- Add 3-5 relevant hashtags on the last line
-- Total length: 800-1500 characters (the sweet spot for LinkedIn)
-- Tone: professional but conversational, share real experience
-- No emojis at line starts (LinkedIn algorithm penalizes this)
-- Use "I" statements and personal stories"""
+- Contrarian hook that stops the scroll. One bold sentence. Then a blank line.
+- Short paragraphs: 1-2 sentences MAX each, with blank lines between.
+- Structure: Bold claim -> Personal proof (real projects, real numbers) -> The insight -> Sharp closer.
+- Lists: 3-5 items max. Each item is one tight line.
+- Include SPECIFIC details: project names, dollar amounts, timeframes, real outcomes.
+- NO generic wisdom. Every point must be backed by personal experience.
+- End with a sharp one-liner or a direct question. Not "Agree? Drop a comment."
+- 3-5 relevant hashtags on the last line.
+- Total: 600-1000 characters. Tighter is better.
+- Tone: confident operator sharing real experience. Not lecturing."""
 
 
 def generate_draft(username, idea, format_type, platform="x", db_uid=None):
