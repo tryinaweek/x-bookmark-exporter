@@ -148,7 +148,7 @@
       <div class="sync-confirm" id="syncConfirm">
         <span>This calls the X API (uses credits). Continue?</span>
         <form method="POST" action="/sync" style="display:inline">
-          <button type="submit" class="btn btn-blue btn-sm">Yes, sync</button>
+          <button type="submit" class="btn btn-blue btn-sm" onclick="this.textContent='Syncing...'; this.style.opacity='0.6'; this.style.pointerEvents='none'; this.closest('.sync-bar').querySelector('.sync-info').innerHTML='<strong>Syncing...</strong> Fetching new bookmarks and tweets from X. This may take a moment.';">Yes, sync</button>
         </form>
         <button class="btn btn-secondary btn-sm" onclick="hideConfirm()">Cancel</button>
       </div>
