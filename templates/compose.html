@@ -258,6 +258,12 @@
 
       <div class="post-actions">
         <a href="/compose" class="btn btn-secondary">Back to Ideas</a>
+        <form method="POST" action="/compose/generate" style="display:inline">
+          <input type="hidden" name="idea" value="{{ idea or '' }}">
+          <input type="hidden" name="format" value="{{ format_type or 'tweet' }}">
+          <input type="hidden" name="platform" value="{{ platform or 'x' }}">
+          <button type="submit" class="btn btn-secondary" onclick="this.textContent='Regenerating...'; this.style.opacity='0.6';">Regenerate</button>
+        </form>
         <button type="button" class="btn btn-secondary" onclick="saveDraft()">Save for Later</button>
         <button type="submit" class="btn btn-blue" onclick="prepareTweets()">
           Post to X
@@ -290,12 +296,27 @@
         </div>
       </div>
       <textarea id="linkedinText" style="width:100%; border:1px solid #e5e5e5; border-radius:8px; padding:14px; font-size:14px; font-family:inherit; min-height:200px; line-height:1.7; resize:vertical; outline:none; background:#fff;" oninput="updateLiCount()">{{ linkedin_post }}</textarea>
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+      <div style="margin-top:8px;">
         <span style="font-size:11px; color:#aaa;" id="liCount">{{ linkedin_post|length }}/3000</span>
-        <button onclick="copyLinkedIn(this)" style="font-size:12px; font-weight:600; color:#0A66C2; cursor:pointer; background:#e8f0fe; padding:6px 14px; border-radius:6px; border:none;">Copy to clipboard</button>
       </div>
     </div>
-    <p style="font-size:12px; color:#aaa; margin-top:10px;">Paste this into LinkedIn to publish. Direct posting coming soon.</p>
+    <div class="post-actions">
+      <form method="POST" action="/compose/generate" style="display:inline">
+        <input type="hidden" name="idea" value="{{ idea or '' }}">
+        <input type="hidden" name="format" value="{{ format_type or 'tweet' }}">
+        <input type="hidden" name="platform" value="{{ platform or 'linkedin' }}">
+        <button type="submit" class="btn btn-secondary" onclick="this.textContent='Regenerating...'; this.style.opacity='0.6';">Regenerate</button>
+      </form>
+      <button type="button" class="btn btn-secondary" onclick="saveLinkedInDraft()">Save for Later</button>
+      <button onclick="copyLinkedIn(this)" class="btn btn-blue">Copy to clipboard</button>
+    </div>
+
+    <!-- Hidden save form for LinkedIn -->
+    <form method="POST" action="/compose/save" id="liSaveForm" style="display:none">
+      <input type="hidden" name="tweets" id="liSaveTweetsInput">
+      <input type="hidden" name="topic" value="{{ idea or '' }}">
+      <input type="hidden" name="format" value="linkedin">
+    </form>
   </div>
   {% endif %}
 
@@ -396,6 +417,13 @@ function saveDraft() {
   if (!tweets.length) return;
   document.getElementById('saveTweetsInput').value = JSON.stringify(tweets);
   document.getElementById('saveForm').submit();
+}
+
+function saveLinkedInDraft() {
+  var text = document.getElementById('linkedinText').value.trim();
+  if (!text) return;
+  document.getElementById('liSaveTweetsInput').value = JSON.stringify([text]);
+  document.getElementById('liSaveForm').submit();
 }
 </script>
 </body>
