@@ -193,13 +193,25 @@
   <!-- Compose Form -->
   <div class="card" id="compose-card">
     <h2>Write Your Own</h2>
-    <p class="card-sub">Enter a topic and let AI craft a scroll-stopping tweet or thread.</p>
+    <p class="card-sub">Enter a topic and let AI craft content for X, LinkedIn, or both.</p>
     <form method="POST" action="/compose/generate" id="composeForm">
-      <div class="format-toggle">
-        <div class="format-btn {% if format_type != 'thread' %}active{% endif %}" onclick="setFormat(this, 'tweet')">Single Tweet</div>
-        <div class="format-btn {% if format_type == 'thread' %}active{% endif %}" onclick="setFormat(this, 'thread')">Thread</div>
+      <div class="form-label" style="margin-bottom:6px;">Platform</div>
+      <div class="format-toggle" style="margin-bottom:14px;">
+        <div class="format-btn {% if platform != 'linkedin' and platform != 'both' %}active{% endif %}" onclick="setPlatform(this, 'x')">X / Twitter</div>
+        <div class="format-btn {% if platform == 'linkedin' %}active{% endif %}" onclick="setPlatform(this, 'linkedin')">LinkedIn</div>
+        <div class="format-btn {% if platform == 'both' %}active{% endif %}" onclick="setPlatform(this, 'both')">Both</div>
+      </div>
+      <input type="hidden" name="platform" id="platformInput" value="{{ platform or 'x' }}">
+
+      <div id="formatSection" {% if platform == 'linkedin' %}style="display:none"{% endif %}>
+        <div class="form-label" style="margin-bottom:6px;">Format (X/Twitter)</div>
+        <div class="format-toggle">
+          <div class="format-btn {% if format_type != 'thread' %}active{% endif %}" onclick="setFormat(this, 'tweet')">Single Tweet</div>
+          <div class="format-btn {% if format_type == 'thread' %}active{% endif %}" onclick="setFormat(this, 'thread')">Thread</div>
+        </div>
       </div>
       <input type="hidden" name="format" id="formatInput" value="{{ format_type or 'tweet' }}">
+
       <div class="form-group">
         <textarea name="idea" id="ideaInput" placeholder="e.g. Why most AI agents fail in production — and the 3 patterns that actually work..." rows="3">{{ idea or '' }}</textarea>
       </div>
@@ -261,6 +273,31 @@
   </div>
   {% endif %}
 
+  {% if linkedin_post %}
+  <!-- LinkedIn Preview -->
+  <div class="card">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="#0A66C2"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+      <h2 style="margin-bottom:0;">LinkedIn Post Preview</h2>
+    </div>
+    <div style="border:1px solid #e5e5e5; border-radius:12px; padding:20px; background:#fafafa;">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+        <div style="width:40px;height:40px;background:#0A66C2;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px;">{{ username[0].upper() }}</div>
+        <div>
+          <div style="font-weight:600; font-size:14px;">{{ username }}</div>
+          <div style="font-size:12px; color:#888;">Angel Investor &middot; Tech Founder</div>
+        </div>
+      </div>
+      <textarea id="linkedinText" style="width:100%; border:1px solid #e5e5e5; border-radius:8px; padding:14px; font-size:14px; font-family:inherit; min-height:200px; line-height:1.7; resize:vertical; outline:none; background:#fff;" oninput="updateLiCount()">{{ linkedin_post }}</textarea>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+        <span style="font-size:11px; color:#aaa;" id="liCount">{{ linkedin_post|length }}/3000</span>
+        <button onclick="copyLinkedIn(this)" style="font-size:12px; font-weight:600; color:#0A66C2; cursor:pointer; background:#e8f0fe; padding:6px 14px; border-radius:6px; border:none;">Copy to clipboard</button>
+      </div>
+    </div>
+    <p style="font-size:12px; color:#aaa; margin-top:10px;">Paste this into LinkedIn to publish. Direct posting coming soon.</p>
+  </div>
+  {% endif %}
+
   {% if saved_drafts %}
   <!-- Saved Drafts -->
   <div class="card">
@@ -292,10 +329,37 @@
 </div>
 
 <script>
+function setPlatform(btn, platform) {
+  var toggles = btn.parentElement.querySelectorAll('.format-btn');
+  toggles.forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('platformInput').value = platform;
+  var fs = document.getElementById('formatSection');
+  if (fs) fs.style.display = (platform === 'linkedin') ? 'none' : '';
+}
+
 function setFormat(btn, format) {
-  document.querySelectorAll('.format-btn').forEach(b => b.classList.remove('active'));
+  var toggles = btn.parentElement.querySelectorAll('.format-btn');
+  toggles.forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('formatInput').value = format;
+}
+
+function copyLinkedIn(btn) {
+  var text = document.getElementById('linkedinText').value;
+  navigator.clipboard.writeText(text).then(function() {
+    btn.textContent = 'Copied!';
+    btn.style.background = '#f0fdf4';
+    btn.style.color = '#166534';
+    setTimeout(function() { btn.textContent = 'Copy to clipboard'; btn.style.background = '#e8f0fe'; btn.style.color = '#0A66C2'; }, 2000);
+  });
+}
+
+function updateLiCount() {
+  var len = document.getElementById('linkedinText').value.length;
+  var el = document.getElementById('liCount');
+  el.textContent = len + '/3000';
+  el.style.color = len > 3000 ? '#e0245e' : '#aaa';
 }
 
 function composeFromSuggestion(hook, format) {

@@ -356,10 +356,58 @@ Rules:
         return []
 
 
-def generate_draft(username, idea, format_type):
+LINKEDIN_FORMATTING = """LINKEDIN FORMATTING:
+- Start with a bold hook line that stops the scroll (1 short sentence)
+- Add a blank line after the hook
+- Use short paragraphs (1-2 sentences each) with blank lines between
+- Use storytelling: situation -> challenge -> insight -> lesson
+- Include specific numbers, results, or timeframes
+- End with a question or call to engage ("What's your experience?" / "Agree? Drop a comment.")
+- Add 3-5 relevant hashtags on the last line
+- Total length: 800-1500 characters (the sweet spot for LinkedIn)
+- Tone: professional but conversational, share real experience
+- No emojis at line starts (LinkedIn algorithm penalizes this)
+- Use "I" statements and personal stories"""
+
+
+def generate_draft(username, idea, format_type, platform="x"):
     if not CLAUDE_API_KEY:
-        return []
-    if format_type == "thread":
+        return [], None
+    if platform == "linkedin":
+        prompt = f"""Create a viral LinkedIn post for {username} about: {idea}
+{PROFILE_CONTEXT}
+Return ONLY valid JSON: {{"linkedin_post":"The full post text"}}
+{LINKEDIN_FORMATTING}"""
+        try:
+            result, _ = _call_claude(prompt, max_tokens=2048)
+            post = result.get("linkedin_post", "") if result else ""
+            return [post] if post else [], "linkedin"
+        except Exception:
+            return [], "linkedin"
+    elif platform == "both":
+        prompt = f"""Create content for BOTH Twitter/X and LinkedIn about: {idea}
+{PROFILE_CONTEXT}
+
+Return ONLY valid JSON:
+{{"tweets":["Hook tweet (no number)","2/ Second","3/ Third",...],"linkedin_post":"The full LinkedIn post"}}
+
+For Twitter/X thread:
+{FORMATTING_RULES}
+Write 5-8 tweets. First = pure hook. Last = CTA. Each under 280 chars.
+
+For LinkedIn:
+{LINKEDIN_FORMATTING}
+Adapt the same core idea but in LinkedIn's longer, storytelling format."""
+        try:
+            result, _ = _call_claude(prompt, max_tokens=4096)
+            if not result:
+                return [], "both"
+            tweets = result.get("tweets", [])
+            li_post = result.get("linkedin_post", "")
+            return tweets, "both", li_post
+        except Exception:
+            return [], "both", ""
+    elif format_type == "thread":
         prompt = f"""Create viral Twitter/X thread for @{username} about: {idea}
 {PROFILE_CONTEXT}
 Return ONLY valid JSON: {{"tweets":["Hook tweet (no number)","2/ Second","3/ Third",...]}}
@@ -373,9 +421,9 @@ Return ONLY valid JSON: {{"tweets":["The tweet"]}}
 Under 280 chars. Strong hook. Engagement driver at end."""
     try:
         result, _ = _call_claude(prompt, max_tokens=2048)
-        return result.get("tweets", []) if result else []
+        return result.get("tweets", []) if result else [], None
     except Exception:
-        return []
+        return [], None
 
 
 def build_excel(bookmarks):
@@ -633,11 +681,24 @@ def compose_generate():
         return redirect("/")
     idea = request.form.get("idea", "").strip()
     format_type = request.form.get("format", "tweet")
+    platform = request.form.get("platform", "x")
     if not idea:
         return redirect("/compose")
-    drafts = generate_draft(session.get("username", ""), idea, format_type)
+
+    linkedin_post = None
+    if platform == "both":
+        result = generate_draft(session.get("username", ""), idea, format_type, platform="both")
+        drafts, _, linkedin_post = result if len(result) == 3 else (result[0], "both", "")
+    elif platform == "linkedin":
+        drafts, _ = generate_draft(session.get("username", ""), idea, format_type, platform="linkedin")
+        linkedin_post = drafts[0] if drafts else ""
+        drafts = []
+    else:
+        drafts, _ = generate_draft(session.get("username", ""), idea, format_type, platform="x")
+
     return render_template("compose.html", connected=True, username=session.get("username", ""),
-                           drafts=drafts, idea=idea, format_type=format_type)
+                           drafts=drafts, linkedin_post=linkedin_post,
+                           idea=idea, format_type=format_type, platform=platform)
 
 
 @app.route("/compose/save", methods=["POST"])
