@@ -563,15 +563,70 @@ def content_analyze():
     )
 
 
+PROFILE_CONTEXT = """Profile: Angel investor, operator, and tech founder.
+Focus areas: AI agents, Claude Code, no-code/low-code, SaaS, startups, entrepreneurship, building in public.
+Voice: Direct, practical, experience-driven. Shares frameworks, lessons learned, and actionable insights.
+Audience: Founders, builders, developers, AI enthusiasts, indie hackers."""
+
+
+def generate_topic_suggestions(username):
+    """Generate trending topic suggestions based on profile."""
+    if not CLAUDE_API_KEY:
+        return []
+
+    prompt = f"""You are a Twitter/X content strategist for @{username}.
+
+{PROFILE_CONTEXT}
+
+Generate 8 tweet/thread ideas that would perform well RIGHT NOW (late March 2026). Mix trending AI/tech topics with evergreen founder advice.
+
+Return ONLY valid JSON:
+{{
+  "suggestions": [
+    {{
+      "topic": "Short topic title (5-8 words)",
+      "hook": "The opening line that would grab attention",
+      "format": "tweet or thread",
+      "why": "Why this would perform well right now (1 sentence)"
+    }}
+  ]
+}}
+
+Rules:
+- 4 should be timely/trending topics in AI, tech, startups
+- 4 should be evergreen founder/builder wisdom
+- Mix single tweets and threads
+- Hooks should be in the style of Justin Welsh, Sahil Bloom, Dan Koe - pattern interrupts, bold claims, curiosity gaps
+- Each hook must stop the scroll"""
+
+    client = anthropic.Anthropic(api_key=CLAUDE_API_KEY)
+    message = client.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=2048,
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    try:
+        raw = message.content[0].text
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1].rsplit("```", 1)[0]
+        return json.loads(raw).get("suggestions", [])
+    except Exception:
+        return []
+
+
 @app.route("/content/compose")
 def content_compose():
-    """Compose a tweet or thread."""
+    """Compose tab with topic suggestions."""
     if not session.get("access_token"):
         return redirect("/")
+
+    suggestions = generate_topic_suggestions(session.get("username", ""))
     return render_template(
         "compose.html",
         connected=True,
         username=session.get("username", ""),
+        suggestions=suggestions,
     )
 
 
@@ -587,34 +642,57 @@ def content_ai_draft():
         return redirect("/content/compose")
 
     username = session.get("username", "")
+
+    formatting_rules = """
+FORMATTING (Justin Welsh / Sahil Bloom style):
+- Use line breaks generously. One idea per line.
+- Short sentences. Punchy rhythm.
+- Use "white space" - break up dense text
+- Hook → Context → Insight → CTA structure
+- Use patterns: "Most people think X. They're wrong.", "I spent X doing Y. Here's what I learned:"
+- Bullet points with line breaks (not crammed together)
+- Numbers and specifics beat vague claims
+- End tweets with engagement drivers: questions, "Bookmark this.", "RT to help others."
+- For threads: First tweet is the HOOK (no numbering). Last tweet is CTA + value summary.
+- Thread numbering: use "1/", "2/", etc. starting from tweet 2
+- Each tweet should be able to stand alone as valuable
+- Use these sparingly: arrows (→), bullet points (•), checkmarks, line breaks for visual rhythm"""
+
     if format_type == "thread":
-        prompt = f"""Create a Twitter/X thread for @{username} about: {idea}
+        prompt = f"""Create a viral Twitter/X thread for @{username} about: {idea}
+
+{PROFILE_CONTEXT}
 
 Return ONLY valid JSON:
 {{
-  "tweets": ["Tweet 1 text (under 280 chars)", "Tweet 2 text", "Tweet 3 text", ...]
+  "tweets": ["Hook tweet (no number)", "2/ Second tweet", "3/ Third tweet", ...]
 }}
 
-Rules:
-- Write 4-8 tweets for the thread
-- First tweet must hook the reader - make it compelling
-- Each tweet under 280 characters
-- Last tweet should be a call to action (follow, retweet, bookmark)
-- Number each tweet (1/, 2/, etc.) at the start
-- Write in a natural, conversational voice"""
+{formatting_rules}
+
+Additional thread rules:
+- Write 5-8 tweets
+- First tweet: Pure hook. Bold claim or curiosity gap. No "Thread:" or "1/". Just the hook.
+- Middle tweets: One clear insight per tweet. Use line breaks.
+- Last tweet: Summarize value + clear CTA (follow for more, bookmark this thread, repost to help others)
+- Each tweet MUST be under 280 characters"""
     else:
-        prompt = f"""Create a tweet for @{username} about: {idea}
+        prompt = f"""Create a single viral tweet for @{username} about: {idea}
+
+{PROFILE_CONTEXT}
 
 Return ONLY valid JSON:
 {{
-  "tweets": ["The tweet text (under 280 chars)"]
+  "tweets": ["The full tweet text"]
 }}
 
-Rules:
+{formatting_rules}
+
+Additional single tweet rules:
 - Under 280 characters
-- Make it engaging with a strong hook
-- Write in a natural, conversational voice
-- Just one tweet in the array"""
+- One clear idea, beautifully formatted
+- Strong hook in the first line
+- End with engagement driver"""
 
     client = anthropic.Anthropic(api_key=CLAUDE_API_KEY)
     message = client.messages.create(
