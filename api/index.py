@@ -22,7 +22,7 @@ CLAUDE_API_KEY = os.environ.get("CLAUDE_API_KEY", "")
 
 AUTH_URL = "https://twitter.com/i/oauth2/authorize"
 TOKEN_URL = "https://api.twitter.com/2/oauth2/token"
-SCOPES = "bookmark.read tweet.read users.read offline.access"
+SCOPES = "bookmark.read tweet.read tweet.write users.read offline.access"
 
 
 # -- helpers ---------------------------------------------------------------
@@ -501,6 +501,142 @@ def content_analyze():
         tweets_cache=cached,
         analysis=analysis,
         error=error,
+    )
+
+
+@app.route("/content/compose")
+def content_compose():
+    """Compose a tweet or thread."""
+    if not session.get("access_token"):
+        return redirect("/")
+    return render_template(
+        "compose.html",
+        connected=True,
+        username=session.get("username", ""),
+    )
+
+
+@app.route("/content/ai-draft", methods=["POST"])
+def content_ai_draft():
+    """Generate a tweet or thread with AI."""
+    if not session.get("access_token"):
+        return redirect("/")
+
+    idea = request.form.get("idea", "").strip()
+    format_type = request.form.get("format", "tweet")
+    if not idea or not CLAUDE_API_KEY:
+        return redirect("/content/compose")
+
+    username = session.get("username", "")
+    if format_type == "thread":
+        prompt = f"""Create a Twitter/X thread for @{username} about: {idea}
+
+Return ONLY valid JSON:
+{{
+  "tweets": ["Tweet 1 text (under 280 chars)", "Tweet 2 text", "Tweet 3 text", ...]
+}}
+
+Rules:
+- Write 4-8 tweets for the thread
+- First tweet must hook the reader - make it compelling
+- Each tweet under 280 characters
+- Last tweet should be a call to action (follow, retweet, bookmark)
+- Number each tweet (1/, 2/, etc.) at the start
+- Write in a natural, conversational voice"""
+    else:
+        prompt = f"""Create a tweet for @{username} about: {idea}
+
+Return ONLY valid JSON:
+{{
+  "tweets": ["The tweet text (under 280 chars)"]
+}}
+
+Rules:
+- Under 280 characters
+- Make it engaging with a strong hook
+- Write in a natural, conversational voice
+- Just one tweet in the array"""
+
+    client = anthropic.Anthropic(api_key=CLAUDE_API_KEY)
+    message = client.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=2048,
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    try:
+        raw = message.content[0].text
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1].rsplit("```", 1)[0]
+        data = json.loads(raw)
+        drafts = data.get("tweets", [])
+    except Exception:
+        drafts = []
+
+    return render_template(
+        "compose.html",
+        connected=True,
+        username=session.get("username", ""),
+        drafts=drafts,
+        idea=idea,
+        format_type=format_type,
+    )
+
+
+@app.route("/content/post", methods=["POST"])
+def content_post():
+    """Post a tweet or thread to X."""
+    token = session.get("access_token")
+    if not token:
+        return redirect("/")
+
+    tweets_json = request.form.get("tweets", "[]")
+    try:
+        tweets = json.loads(tweets_json)
+    except json.JSONDecodeError:
+        return redirect("/content/compose")
+
+    if not tweets:
+        return redirect("/content/compose")
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+
+    posted = []
+    reply_to = None
+    for tweet_text in tweets:
+        body = {"text": tweet_text}
+        if reply_to:
+            body["reply"] = {"in_reply_to_tweet_id": reply_to}
+
+        r = requests.post(
+            "https://api.twitter.com/2/tweets",
+            headers=headers,
+            json=body,
+        )
+        data = r.json()
+        if "data" in data:
+            reply_to = data["data"]["id"]
+            posted.append(data["data"]["id"])
+        else:
+            return render_template(
+                "compose.html",
+                connected=True,
+                username=session.get("username", ""),
+                error=f"Post failed: {data}",
+                drafts=tweets,
+            )
+
+    first_id = posted[0] if posted else ""
+    return render_template(
+        "compose.html",
+        connected=True,
+        username=session.get("username", ""),
+        success=True,
+        posted_url=f"https://twitter.com/{session.get('username', '')}/status/{first_id}",
+        posted_count=len(posted),
     )
 
 

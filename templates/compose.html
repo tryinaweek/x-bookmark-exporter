@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Compose - MyBookmarks</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f5f5; color: #1a1a1a; min-height: 100vh;
+    }
+    nav {
+      background: #fff; border-bottom: 1px solid #f0f0f0;
+      padding: 14px 32px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #1a1a1a; }
+    .nav-brand svg { width: 22px; height: 22px; }
+    .nav-brand span { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+    .btn-ghost { background: transparent; color: #555; padding: 8px 16px; font-size: 14px; font-weight: 600; text-decoration: none; }
+
+    .tabs {
+      display: flex; gap: 0; background: #fff; border-bottom: 1px solid #e5e5e5; padding: 0 32px;
+    }
+    .tab {
+      padding: 12px 20px; font-size: 14px; font-weight: 600; color: #888;
+      text-decoration: none; border-bottom: 2px solid transparent; transition: all 0.15s;
+    }
+    .tab:hover { color: #333; }
+    .tab.active { color: #7c3aed; border-bottom-color: #7c3aed; }
+
+    .container { max-width: 680px; margin: 32px auto; padding: 0 24px; }
+
+    .card {
+      background: #fff; border: 1px solid #e5e5e5; border-radius: 12px;
+      padding: 32px; margin-bottom: 24px;
+    }
+    .card h2 { font-size: 16px; font-weight: 600; margin-bottom: 20px; color: #444; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px;
+      border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;
+      border: none; text-decoration: none; transition: all 0.15s;
+    }
+    .btn:hover { opacity: 0.88; }
+    .btn-ai { background: #7c3aed; color: #fff; }
+    .btn-success { background: #00ba7c; color: #fff; }
+    .btn-secondary { background: #f5f5f5; color: #333; border: 1px solid #e5e5e5; }
+    .btn-danger { background: #fff; color: #e0245e; border: 1px solid #e5e5e5; }
+    .btn-blue { background: #1D9BF0; color: #fff; }
+
+    .error {
+      background: #fff0f0; border: 1px solid #ffc0c0; border-radius: 8px;
+      padding: 14px 18px; color: #c0392b; font-size: 14px; margin-bottom: 20px;
+    }
+    .success-box {
+      background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px;
+      padding: 24px; text-align: center; margin-bottom: 20px;
+    }
+    .success-box h3 { color: #166534; margin-bottom: 8px; }
+    .success-box p { color: #15803d; font-size: 14px; margin-bottom: 14px; }
+    .success-box a { color: #166534; font-weight: 600; }
+
+    /* Compose form */
+    .form-group { margin-bottom: 20px; }
+    .form-label { display: block; font-size: 13px; font-weight: 600; color: #555; margin-bottom: 6px; }
+    textarea {
+      width: 100%; border: 1px solid #ddd; border-radius: 8px; padding: 12px 14px;
+      font-size: 15px; font-family: inherit; resize: vertical; min-height: 100px;
+      outline: none; transition: border 0.15s; line-height: 1.5;
+    }
+    textarea:focus { border-color: #7c3aed; }
+
+    .format-toggle { display: flex; gap: 0; margin-bottom: 20px; }
+    .format-btn {
+      flex: 1; padding: 10px; text-align: center; font-size: 14px; font-weight: 600;
+      border: 1px solid #e5e5e5; cursor: pointer; transition: all 0.15s;
+      background: #fff; color: #888;
+    }
+    .format-btn:first-child { border-radius: 8px 0 0 8px; }
+    .format-btn:last-child { border-radius: 0 8px 8px 0; }
+    .format-btn.active { background: #7c3aed; color: #fff; border-color: #7c3aed; }
+
+    .form-actions { display: flex; gap: 10px; }
+
+    /* Draft preview */
+    .draft-preview { margin-top: 28px; }
+    .draft-preview h3 { font-size: 15px; font-weight: 600; margin-bottom: 14px; color: #333; }
+
+    .tweet-preview {
+      border: 1px solid #e5e5e5; border-radius: 12px; padding: 16px 18px;
+      margin-bottom: 12px; position: relative;
+    }
+    .tweet-preview:last-of-type { margin-bottom: 0; }
+    .tweet-preview-header {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    }
+    .preview-avatar {
+      width: 32px; height: 32px; background: #7c3aed; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 700; font-size: 13px;
+    }
+    .preview-name { font-weight: 600; font-size: 14px; }
+    .preview-handle { font-size: 13px; color: #888; }
+    .tweet-preview-text {
+      font-size: 15px; line-height: 1.5; margin-bottom: 8px; white-space: pre-wrap;
+    }
+    .tweet-preview-edit {
+      width: 100%; border: 1px solid #f0f0f0; border-radius: 6px; padding: 10px;
+      font-size: 15px; font-family: inherit; resize: vertical; min-height: 60px;
+      outline: none; line-height: 1.5;
+    }
+    .tweet-preview-edit:focus { border-color: #7c3aed; }
+    .char-count {
+      font-size: 11px; color: #aaa; text-align: right; margin-top: 4px;
+    }
+    .char-count.over { color: #e0245e; font-weight: 600; }
+    .thread-line {
+      position: absolute; left: 33px; top: 56px; bottom: -12px;
+      width: 2px; background: #e5e5e5;
+    }
+
+    .post-actions {
+      display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+      <path d="M12 7l1.5 3 3.5.5-2.5 2.5.5 3.5L12 15l-3 1.5.5-3.5L7 10.5l3.5-.5z" fill="#7c3aed" stroke="#7c3aed" stroke-width="1.5"/>
+    </svg>
+    <span>MyBookmarks</span>
+  </a>
+  <a href="/logout" class="btn-ghost">Sign out</a>
+</nav>
+
+<div class="tabs">
+  <a href="/" class="tab">Bookmarks</a>
+  <a href="/content" class="tab">Content Engine</a>
+  <a href="/content/compose" class="tab active">Compose</a>
+</div>
+
+<div class="container">
+
+  {% if error %}
+  <div class="error">{{ error }}</div>
+  {% endif %}
+
+  {% if success %}
+  <div class="success-box">
+    <h3>Posted successfully!</h3>
+    <p>{{ posted_count }} tweet{{ 's' if posted_count != 1 }} published.</p>
+    <a href="{{ posted_url }}" target="_blank">View on X &rarr;</a>
+  </div>
+  {% endif %}
+
+  <!-- Compose Card -->
+  <div class="card">
+    <h2>Create a Post</h2>
+    <form method="POST" action="/content/ai-draft">
+      <div class="format-toggle">
+        <div class="format-btn active" onclick="setFormat(this, 'tweet')">Single Tweet</div>
+        <div class="format-btn" onclick="setFormat(this, 'thread')">Thread</div>
+      </div>
+      <input type="hidden" name="format" id="formatInput" value="tweet">
+      <div class="form-group">
+        <label class="form-label">What's your idea?</label>
+        <textarea name="idea" placeholder="e.g. The 3 biggest mistakes founders make when using AI agents for the first time..." rows="3">{{ idea or '' }}</textarea>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-ai">Generate with AI</button>
+      </div>
+    </form>
+  </div>
+
+  {% if drafts %}
+  <!-- Draft Preview -->
+  <div class="card">
+    <div class="draft-preview">
+      <h3>{% if drafts|length > 1 %}Thread Preview ({{ drafts|length }} tweets){% else %}Tweet Preview{% endif %}</h3>
+
+      <form method="POST" action="/content/post" id="postForm">
+        {% for tweet in drafts %}
+        <div class="tweet-preview" style="position:relative;">
+          {% if drafts|length > 1 and not loop.last %}
+          <div class="thread-line"></div>
+          {% endif %}
+          <div class="tweet-preview-header">
+            <div class="preview-avatar">{{ username[0].upper() }}</div>
+            <div>
+              <span class="preview-name">@{{ username }}</span>
+              {% if drafts|length > 1 %}<span class="preview-handle">&middot; {{ loop.index }}/{{ drafts|length }}</span>{% endif %}
+            </div>
+          </div>
+          <textarea class="tweet-preview-edit tweet-input" rows="3" oninput="updateCharCount(this)">{{ tweet }}</textarea>
+          <div class="char-count"><span class="count-num">{{ tweet|length }}</span>/280</div>
+        </div>
+        {% endfor %}
+
+        <input type="hidden" name="tweets" id="tweetsInput">
+
+        <div class="post-actions">
+          <a href="/content/compose" class="btn btn-secondary">Discard</a>
+          <button type="submit" class="btn btn-blue" onclick="prepareTweets()">
+            Post to X
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+function setFormat(btn, format) {
+  document.querySelectorAll('.format-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('formatInput').value = format;
+}
+
+function updateCharCount(textarea) {
+  const count = textarea.value.length;
+  const el = textarea.parentElement.querySelector('.count-num');
+  const container = textarea.parentElement.querySelector('.char-count');
+  el.textContent = count;
+  container.classList.toggle('over', count > 280);
+}
+
+function prepareTweets() {
+  const inputs = document.querySelectorAll('.tweet-input');
+  const tweets = Array.from(inputs).map(t => t.value.trim()).filter(t => t);
+  document.getElementById('tweetsInput').value = JSON.stringify(tweets);
+}
+</script>
+</body>
+</html>
