@@ -445,11 +445,14 @@ function showScheduler(type) {
 function submitSchedule(type) {
   var time = document.getElementById('scheduleTime' + type.toUpperCase()).value;
   if (!time) { alert('Pick a date and time first.'); return; }
+  // Convert local time to UTC ISO string
+  var localDate = new Date(time);
+  var utcTime = localDate.toISOString();
   if (type === 'x') {
     var inputs = document.querySelectorAll('.tweet-input');
     var tweets = Array.from(inputs).map(function(t) { return t.value.trim(); }).filter(function(t) { return t; });
     document.getElementById('scheduleTweetsInput').value = JSON.stringify(tweets);
-    document.getElementById('scheduleAtInput').value = time;
+    document.getElementById('scheduleAtInput').value = utcTime;
     document.getElementById('scheduleForm').submit();
   }
 }

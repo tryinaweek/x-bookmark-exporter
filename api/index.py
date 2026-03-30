@@ -1088,6 +1088,58 @@ def debug():
     return f"<html><body><pre>{json.dumps(info, indent=2, default=str)}</pre></body></html>"
 
 
+@app.route("/api/cron")
+def run_cron():
+    """Auto-post scheduled tweets. Called by Vercel Cron every 15 min."""
+    if not SUPABASE_URL:
+        return json.dumps({"status": "no supabase"}), 200
+
+    now = datetime.now(timezone.utc).isoformat()
+
+    due = _sb_get("drafts", f"status=eq.scheduled&scheduled_at=lte.{now}&select=id,user_id,tweets")
+    if not due:
+        return json.dumps({"status": "nothing due", "checked_at": now}), 200
+
+    results = []
+    for draft in due:
+        draft_id = draft["id"]
+        user_id = draft["user_id"]
+        tweets = draft.get("tweets", [])
+        if isinstance(tweets, str):
+            tweets = json.loads(tweets)
+
+        users = _sb_get("users", f"id=eq.{user_id}&select=access_token")
+        if not users:
+            results.append({"draft_id": draft_id, "status": "no user"})
+            continue
+        token = users[0].get("access_token", "")
+        if not token:
+            results.append({"draft_id": draft_id, "status": "no token"})
+            continue
+
+        headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+        posted, reply_to, failed = [], None, False
+        for tweet_text in tweets:
+            body = {"text": tweet_text}
+            if reply_to:
+                body["reply"] = {"in_reply_to_tweet_id": reply_to}
+            r = req_lib.post("https://api.twitter.com/2/tweets", headers=headers, json=body)
+            data = r.json()
+            if "data" in data:
+                reply_to = data["data"]["id"]
+                posted.append(data["data"]["id"])
+            else:
+                results.append({"draft_id": draft_id, "status": "failed", "error": str(data)})
+                failed = True
+                break
+
+        if not failed and posted:
+            _sb_patch("drafts", {"status": "posted", "posted_at": now}, f"id=eq.{draft_id}")
+            results.append({"draft_id": draft_id, "status": "posted", "ids": posted})
+
+    return json.dumps({"status": "ok", "processed": len(due), "results": results}), 200
+
+
 @app.route("/logout")
 def logout():
     session.clear()
