@@ -617,10 +617,21 @@ Rules:
 
 @app.route("/content/compose")
 def content_compose():
-    """Compose tab with topic suggestions."""
+    """Compose tab."""
     if not session.get("access_token"):
         return redirect("/")
+    return render_template(
+        "compose.html",
+        connected=True,
+        username=session.get("username", ""),
+    )
 
+
+@app.route("/content/suggestions", methods=["POST"])
+def content_suggestions():
+    """Generate topic suggestions (separate call)."""
+    if not session.get("access_token"):
+        return redirect("/")
     suggestions = generate_topic_suggestions(session.get("username", ""))
     return render_template(
         "compose.html",

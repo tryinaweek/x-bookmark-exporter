@@ -156,6 +156,15 @@
 
   {% if not drafts %}
   <!-- Topic Suggestions -->
+  {% if not suggestions %}
+  <div class="card" style="text-align:center; padding: 24px;">
+    <form method="POST" action="/content/suggestions">
+      <button type="submit" class="btn btn-ai" onclick="this.textContent='Loading ideas...'; this.style.opacity='0.6'; this.style.pointerEvents='none';">Get Today's Content Ideas</button>
+    </form>
+    <p style="font-size:13px; color:#aaa; margin-top:10px;">AI generates trending topics based on your profile</p>
+  </div>
+  {% endif %}
+
   {% if suggestions %}
   <div class="card">
     <h2>Today's Content Ideas</h2>
