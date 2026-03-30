@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calendar - MyBookmarks</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f5f5; color: #1a1a1a; min-height: 100vh; }
+    nav { background: #fff; border-bottom: 1px solid #f0f0f0; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; }
+    .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #1a1a1a; }
+    .nav-brand svg { width: 22px; height: 22px; }
+    .nav-brand span { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .nav-link { font-size: 14px; font-weight: 500; color: #888; text-decoration: none; }
+    .nav-link:hover { color: #333; }
+    .nav-link.active { color: #7c3aed; }
+    .container { max-width: 800px; margin: 32px auto; padding: 0 24px; }
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .page-title { font-size: 24px; font-weight: 700; }
+    .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    .card h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: #444; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; text-decoration: none; transition: all 0.15s; }
+    .btn:hover { opacity: 0.88; }
+    .btn-blue { background: #1D9BF0; color: #fff; }
+    .btn-ai { background: #7c3aed; color: #fff; }
+    .btn-secondary { background: #f5f5f5; color: #333; border: 1px solid #e5e5e5; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .error { background: #fff0f0; border: 1px solid #ffc0c0; border-radius: 8px; padding: 12px 16px; color: #c0392b; font-size: 13px; margin-bottom: 16px; }
+    .empty { text-align: center; padding: 60px 20px; color: #aaa; font-size: 14px; }
+
+    .schedule-card {
+      border: 1px solid #e5e5e5; border-radius: 12px; padding: 20px;
+      margin-bottom: 14px; border-left: 4px solid #7c3aed;
+    }
+    .schedule-card.posted { border-left-color: #00ba7c; opacity: 0.7; }
+    .schedule-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 12px;
+    }
+    .schedule-time { font-size: 14px; font-weight: 600; color: #7c3aed; }
+    .schedule-card.posted .schedule-time { color: #00ba7c; }
+    .schedule-badge {
+      font-size: 10px; font-weight: 600; padding: 2px 10px; border-radius: 10px;
+    }
+    .badge-scheduled { background: #f3edff; color: #7c3aed; }
+    .badge-posted { background: #f0fdf4; color: #166534; }
+    .schedule-topic { font-size: 13px; color: #888; margin-bottom: 8px; }
+    .schedule-preview {
+      font-size: 14px; line-height: 1.6; color: #333; background: #fafafa;
+      border-radius: 8px; padding: 12px; margin-bottom: 12px; white-space: pre-wrap;
+    }
+    .schedule-meta { font-size: 12px; color: #aaa; margin-bottom: 10px; }
+    .schedule-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .schedule-actions input[type="datetime-local"] {
+      font-size: 12px; padding: 5px 10px; border: 1px solid #ddd; border-radius: 6px; outline: none;
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+      <path d="M12 7l1.5 3 3.5.5-2.5 2.5.5 3.5L12 15l-3 1.5.5-3.5L7 10.5l3.5-.5z" fill="#7c3aed" stroke="#7c3aed" stroke-width="1.5"/>
+    </svg>
+    <span>MyBookmarks</span>
+  </a>
+  <div class="nav-right">
+    <a href="/" class="nav-link">Dashboard</a>
+    <a href="/bookmarks" class="nav-link">Bookmarks</a>
+    <a href="/tweets" class="nav-link">Tweets</a>
+    <a href="/compose" class="nav-link">Compose</a>
+    <a href="/calendar" class="nav-link active">Calendar</a>
+    <a href="/drafts" class="nav-link">Drafts</a>
+    <a href="/settings" class="nav-link">Settings</a>
+    <a href="/logout" class="nav-link" style="color:#e0245e;">Sign out</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  {% if error %}
+  <div class="error">{{ error }}</div>
+  {% endif %}
+
+  <div class="page-header">
+    <h1 class="page-title">Content Calendar</h1>
+    <a href="/compose" class="btn btn-ai">New Post</a>
+  </div>
+
+  {% if scheduled %}
+  <div class="card">
+    <h2>Upcoming ({{ scheduled|length }})</h2>
+    {% for item in scheduled %}
+    <div class="schedule-card">
+      <div class="schedule-header">
+        <div class="schedule-time">{{ item.scheduled_at[:16].replace('T', ' at ') if item.scheduled_at else 'No time set' }}</div>
+        <span class="schedule-badge badge-scheduled">{{ item.format or 'tweet' }}</span>
+      </div>
+      {% if item.topic %}
+      <div class="schedule-topic">{{ item.topic }}</div>
+      {% endif %}
+      <div class="schedule-preview">{{ item.tweets[0][:200] if item.tweets else '' }}{% if item.tweets and item.tweets[0]|length > 200 %}...{% endif %}</div>
+      {% if item.tweets|length > 1 %}
+      <div class="schedule-meta">+ {{ item.tweets|length - 1 }} more tweets in thread</div>
+      {% endif %}
+      <div class="schedule-actions">
+        <form method="POST" action="/calendar/post-now/{{ item.id }}" style="display:inline">
+          <button type="submit" class="btn btn-sm btn-blue">Post Now</button>
+        </form>
+        <form method="POST" action="/calendar/reschedule/{{ item.id }}" style="display:inline; display:flex; gap:6px; align-items:center;">
+          <input type="datetime-local" name="scheduled_at" value="{{ item.scheduled_at[:16] if item.scheduled_at else '' }}">
+          <button type="submit" class="btn btn-sm btn-secondary">Reschedule</button>
+        </form>
+        <form method="POST" action="/calendar/delete/{{ item.id }}" style="display:inline">
+          <button type="submit" class="btn btn-sm btn-secondary" style="color:#e0245e;">Delete</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if not scheduled and not posted %}
+  <div class="card">
+    <div class="empty">No scheduled posts yet. <a href="/compose" style="color:#7c3aed;">Compose content</a> and schedule it for later.</div>
+  </div>
+  {% endif %}
+
+  {% if posted %}
+  <div class="card">
+    <h2>Recently Posted</h2>
+    {% for item in posted %}
+    <div class="schedule-card posted">
+      <div class="schedule-header">
+        <div class="schedule-time">Posted {{ item.posted_at[:16].replace('T', ' ') if item.posted_at else '' }}</div>
+        <span class="schedule-badge badge-posted">posted</span>
+      </div>
+      <div class="schedule-preview">{{ item.tweets[0][:150] if item.tweets else '' }}{% if item.tweets and item.tweets[0]|length > 150 %}...{% endif %}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+</div>
+</body>
+</html>

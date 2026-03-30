@@ -136,6 +136,7 @@
     <a href="/bookmarks" style="font-size:14px;font-weight:500;color:#888;text-decoration:none;">Bookmarks</a>
     <a href="/tweets" style="font-size:14px;font-weight:500;color:#888;text-decoration:none;">Tweets</a>
     <a href="/compose" style="font-size:14px;font-weight:500;color:#7c3aed;text-decoration:none;">Compose</a>
+    <a href="/calendar" style="font-size:14px;font-weight:500;color:#888;text-decoration:none;">Calendar</a>
     <a href="/drafts" style="font-size:14px;font-weight:500;color:#888;text-decoration:none;">Drafts</a>
     <a href="/settings" style="font-size:14px;font-weight:500;color:#888;text-decoration:none;">Settings</a>
     <a href="/logout" style="font-size:14px;font-weight:500;color:#e0245e;text-decoration:none;">Sign out</a>
@@ -256,7 +257,7 @@
 
       <input type="hidden" name="tweets" id="tweetsInput">
 
-      <div class="post-actions">
+      <div class="post-actions" style="flex-wrap:wrap;">
         <a href="/compose" class="btn btn-secondary">Back to Ideas</a>
         <form method="POST" action="/compose/generate" style="display:inline">
           <input type="hidden" name="idea" value="{{ idea or '' }}">
@@ -264,10 +265,19 @@
           <input type="hidden" name="platform" value="{{ platform or 'x' }}">
           <button type="submit" class="btn btn-secondary" onclick="this.textContent='Regenerating...'; this.style.opacity='0.6';">Regenerate</button>
         </form>
-        <button type="button" class="btn btn-secondary" onclick="saveDraft()">Save for Later</button>
-        <button type="submit" class="btn btn-blue" onclick="prepareTweets()">
-          Post to X
-        </button>
+        <button type="button" class="btn btn-secondary" onclick="saveDraft()">Save Draft</button>
+        <button type="button" class="btn btn-ai" onclick="showScheduler('x')">Schedule</button>
+        <button type="submit" class="btn btn-blue" onclick="prepareTweets()">Post to X</button>
+      </div>
+
+      <!-- Schedule picker (hidden until Schedule clicked) -->
+      <div id="schedulerX" style="display:none; margin-top:14px; padding:16px; background:#faf8ff; border:1px solid #e8e5ff; border-radius:10px;">
+        <div style="font-size:14px; font-weight:600; color:#7c3aed; margin-bottom:10px;">Schedule this post</div>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <input type="datetime-local" id="scheduleTimeX" style="padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; outline:none;">
+          <button type="button" class="btn btn-ai" onclick="submitSchedule('x')">Confirm Schedule</button>
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('schedulerX').style.display='none'">Cancel</button>
+        </div>
       </div>
     </form>
 
@@ -276,6 +286,14 @@
       <input type="hidden" name="tweets" id="saveTweetsInput">
       <input type="hidden" name="topic" value="{{ idea or '' }}">
       <input type="hidden" name="format" value="{{ format_type or 'tweet' }}">
+    </form>
+
+    <!-- Hidden schedule form -->
+    <form method="POST" action="/compose/schedule" id="scheduleForm" style="display:none">
+      <input type="hidden" name="tweets" id="scheduleTweetsInput">
+      <input type="hidden" name="topic" value="{{ idea or '' }}">
+      <input type="hidden" name="format" value="{{ format_type or 'tweet' }}">
+      <input type="hidden" name="scheduled_at" id="scheduleAtInput">
     </form>
   </div>
   {% endif %}
@@ -417,6 +435,23 @@ function saveDraft() {
   if (!tweets.length) return;
   document.getElementById('saveTweetsInput').value = JSON.stringify(tweets);
   document.getElementById('saveForm').submit();
+}
+
+function showScheduler(type) {
+  var el = document.getElementById('scheduler' + type.toUpperCase());
+  if (el) el.style.display = 'block';
+}
+
+function submitSchedule(type) {
+  var time = document.getElementById('scheduleTime' + type.toUpperCase()).value;
+  if (!time) { alert('Pick a date and time first.'); return; }
+  if (type === 'x') {
+    var inputs = document.querySelectorAll('.tweet-input');
+    var tweets = Array.from(inputs).map(function(t) { return t.value.trim(); }).filter(function(t) { return t; });
+    document.getElementById('scheduleTweetsInput').value = JSON.stringify(tweets);
+    document.getElementById('scheduleAtInput').value = time;
+    document.getElementById('scheduleForm').submit();
+  }
 }
 
 function saveLinkedInDraft() {

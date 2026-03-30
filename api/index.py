@@ -909,6 +909,93 @@ def compose_post():
                            posted_count=len(posted))
 
 
+@app.route("/compose/schedule", methods=["POST"])
+def compose_schedule():
+    if not session.get("access_token"):
+        return redirect("/")
+    db_uid = ensure_db_uid()
+    tweets_json = request.form.get("tweets", "[]")
+    topic = request.form.get("topic", "")
+    fmt = request.form.get("format", "tweet")
+    scheduled_at = request.form.get("scheduled_at", "")
+    try:
+        tweets = json.loads(tweets_json)
+    except json.JSONDecodeError:
+        return redirect("/compose")
+    if not tweets or not scheduled_at:
+        return redirect("/compose")
+    _sb_post("drafts", {
+        "user_id": db_uid, "tweets": json.dumps(tweets), "format": fmt,
+        "topic": topic, "status": "scheduled", "scheduled_at": scheduled_at,
+    })
+    return redirect("/calendar")
+
+
+@app.route("/calendar")
+def calendar_view():
+    if not session.get("access_token"):
+        return redirect("/")
+    db_uid = ensure_db_uid()
+    scheduled = _sb_get("drafts", f"user_id=eq.{db_uid}&status=eq.scheduled&order=scheduled_at.asc") or []
+    posted = _sb_get("drafts", f"user_id=eq.{db_uid}&status=eq.posted&order=posted_at.desc&limit=10") or []
+    for item in scheduled + posted:
+        if isinstance(item.get("tweets"), str):
+            item["tweets"] = json.loads(item["tweets"])
+    return render_template("calendar.html", connected=True, username=session.get("username", ""),
+                           scheduled=scheduled, posted=posted)
+
+
+@app.route("/calendar/post-now/<draft_id>", methods=["POST"])
+def calendar_post_now(draft_id):
+    token = session.get("access_token")
+    if not token:
+        return redirect("/")
+    db_uid = ensure_db_uid()
+    rows = _sb_get("drafts", f"id=eq.{draft_id}&user_id=eq.{db_uid}")
+    if not rows:
+        return redirect("/calendar")
+    draft = rows[0]
+    tweets = draft.get("tweets", [])
+    if isinstance(tweets, str):
+        tweets = json.loads(tweets)
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    posted, reply_to = [], None
+    for tweet_text in tweets:
+        body = {"text": tweet_text}
+        if reply_to:
+            body["reply"] = {"in_reply_to_tweet_id": reply_to}
+        r = req_lib.post("https://api.twitter.com/2/tweets", headers=headers, json=body)
+        data = r.json()
+        if "data" in data:
+            reply_to = data["data"]["id"]
+            posted.append(data["data"]["id"])
+        else:
+            return render_template("calendar.html", connected=True, username=session.get("username", ""),
+                                   error=f"Post failed: {data}", scheduled=[], posted=[])
+    db_mark_posted(draft_id, db_uid)
+    return redirect("/calendar")
+
+
+@app.route("/calendar/reschedule/<draft_id>", methods=["POST"])
+def calendar_reschedule(draft_id):
+    if not session.get("access_token"):
+        return redirect("/")
+    db_uid = ensure_db_uid()
+    new_time = request.form.get("scheduled_at", "")
+    if new_time:
+        _sb_patch("drafts", {"scheduled_at": new_time}, f"id=eq.{draft_id}&user_id=eq.{db_uid}")
+    return redirect("/calendar")
+
+
+@app.route("/calendar/delete/<draft_id>", methods=["POST"])
+def calendar_delete(draft_id):
+    if not session.get("access_token"):
+        return redirect("/")
+    db_uid = ensure_db_uid()
+    _sb_delete("drafts", f"id=eq.{draft_id}&user_id=eq.{db_uid}")
+    return redirect("/calendar")
+
+
 @app.route("/drafts")
 def drafts_view():
     if not session.get("access_token"):
