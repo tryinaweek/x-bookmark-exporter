@@ -7,10 +7,9 @@ import urllib.parse
 import io
 from datetime import datetime, timezone
 
-import requests
+import requests as req_lib
 import anthropic
 from flask import Flask, render_template, request, redirect, session, send_file
-from supabase import create_client
 
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
@@ -28,57 +27,84 @@ AUTH_URL = "https://twitter.com/i/oauth2/authorize"
 TOKEN_URL = "https://api.twitter.com/2/oauth2/token"
 SCOPES = "bookmark.read tweet.read tweet.write users.read offline.access"
 
-try:
-    sb = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
-except Exception:
-    sb = None
+SB_HEADERS = {
+    "apikey": SUPABASE_KEY,
+    "Authorization": f"Bearer {SUPABASE_KEY}",
+    "Content-Type": "application/json",
+    "Prefer": "return=representation",
+} if SUPABASE_KEY else {}
 
 
-# -- DB helpers ------------------------------------------------------------
+# -- DB helpers (direct REST) ----------------------------------------------
+
+def _sb_get(table, params=""):
+    if not SUPABASE_URL:
+        return []
+    r = req_lib.get(f"{SUPABASE_URL}/rest/v1/{table}?{params}", headers=SB_HEADERS)
+    return r.json() if r.status_code == 200 else []
+
+
+def _sb_post(table, data):
+    if not SUPABASE_URL:
+        return []
+    r = req_lib.post(f"{SUPABASE_URL}/rest/v1/{table}", headers=SB_HEADERS, json=data)
+    return r.json() if r.status_code in (200, 201) else []
+
+
+def _sb_patch(table, data, params):
+    if not SUPABASE_URL:
+        return []
+    r = req_lib.patch(f"{SUPABASE_URL}/rest/v1/{table}?{params}", headers=SB_HEADERS, json=data)
+    return r.json() if r.status_code == 200 else []
+
+
+def _sb_delete(table, params):
+    if not SUPABASE_URL:
+        return
+    req_lib.delete(f"{SUPABASE_URL}/rest/v1/{table}?{params}", headers=SB_HEADERS)
+
 
 def db_get_or_create_user(x_user_id, username, name, access_token):
-    if not sb:
-        return None
-    existing = sb.table("users").select("id").eq("x_user_id", x_user_id).execute()
-    if existing.data:
-        sb.table("users").update({
+    existing = _sb_get("users", f"x_user_id=eq.{x_user_id}&select=id")
+    if existing:
+        _sb_patch("users", {
             "username": username, "name": name,
             "access_token": access_token, "updated_at": datetime.now(timezone.utc).isoformat(),
-        }).eq("x_user_id", x_user_id).execute()
-        return existing.data[0]["id"]
-    result = sb.table("users").insert({
-        "x_user_id": x_user_id, "username": username,
+        }, f"x_user_id=eq.{x_user_id}")
+        return existing[0]["id"]
+    result = _sb_post("users", {
+        "x_user_id": str(x_user_id), "username": username,
         "name": name, "access_token": access_token,
-    }).execute()
-    return result.data[0]["id"] if result.data else None
+    })
+    return result[0]["id"] if result else None
 
 
 def db_save_cache(table, user_id, data, last_id=None):
-    if not sb or not user_id:
+    if not user_id:
         return
-    sb.table(table).delete().eq("user_id", user_id).execute()
-    row = {"user_id": user_id, "data": data}
+    _sb_delete(table, f"user_id=eq.{user_id}")
+    row = {"user_id": user_id, "data": json.dumps(data)}
     if last_id:
         row["last_id"] = last_id
-    sb.table(table).insert(row).execute()
+    _sb_post(table, row)
 
 
 def db_load_cache_full(table, user_id):
-    """Returns (data, last_id, fetched_at) or (None, None, None)."""
-    if not sb or not user_id:
+    if not user_id:
         return None, None, None
-    result = sb.table(table).select("data, last_id, fetched_at").eq("user_id", user_id).order("fetched_at", desc=True).limit(1).execute()
-    if result.data:
-        row = result.data[0]
-        return row.get("data"), row.get("last_id"), row.get("fetched_at")
+    rows = _sb_get(table, f"user_id=eq.{user_id}&select=data,last_id,fetched_at&order=fetched_at.desc&limit=1")
+    if rows:
+        row = rows[0]
+        data = row.get("data")
+        if isinstance(data, str):
+            data = json.loads(data)
+        return data, row.get("last_id"), row.get("fetched_at")
     return None, None, None
 
 
 def db_merge_cache(table, user_id, new_data, last_id):
-    """Merge new data with existing cached data (delta refresh)."""
     existing, _, _ = db_load_cache_full(table, user_id)
     if existing:
-        existing_ids = {item["id"] for item in existing}
         merged = new_data + [item for item in existing if item["id"] not in {n["id"] for n in new_data}]
     else:
         merged = new_data
@@ -87,50 +113,56 @@ def db_merge_cache(table, user_id, new_data, last_id):
 
 
 def db_save_analysis(user_id, analysis_type, data):
-    if not sb or not user_id:
+    if not user_id:
         return
-    sb.table("analyses").delete().eq("user_id", user_id).eq("type", analysis_type).execute()
-    sb.table("analyses").insert({"user_id": user_id, "type": analysis_type, "data": data}).execute()
+    _sb_delete("analyses", f"user_id=eq.{user_id}&type=eq.{analysis_type}")
+    _sb_post("analyses", {"user_id": user_id, "type": analysis_type, "data": json.dumps(data)})
 
 
 def db_load_analysis(user_id, analysis_type):
-    if not sb or not user_id:
+    if not user_id:
         return None
-    result = sb.table("analyses").select("data").eq("user_id", user_id).eq("type", analysis_type).order("created_at", desc=True).limit(1).execute()
-    return result.data[0]["data"] if result.data else None
+    rows = _sb_get("analyses", f"user_id=eq.{user_id}&type=eq.{analysis_type}&select=data&order=created_at.desc&limit=1")
+    if rows:
+        data = rows[0].get("data")
+        return json.loads(data) if isinstance(data, str) else data
+    return None
 
 
 def db_save_suggestions(user_id, data):
-    if not sb or not user_id:
+    if not user_id:
         return
-    sb.table("suggestions").delete().eq("user_id", user_id).execute()
-    sb.table("suggestions").insert({"user_id": user_id, "data": data}).execute()
+    _sb_delete("suggestions", f"user_id=eq.{user_id}")
+    _sb_post("suggestions", {"user_id": user_id, "data": json.dumps(data)})
 
 
 def db_load_suggestions(user_id):
-    if not sb or not user_id:
+    if not user_id:
         return None
-    result = sb.table("suggestions").select("data").eq("user_id", user_id).order("generated_at", desc=True).limit(1).execute()
-    return result.data[0]["data"] if result.data else None
+    rows = _sb_get("suggestions", f"user_id=eq.{user_id}&select=data&order=generated_at.desc&limit=1")
+    if rows:
+        data = rows[0].get("data")
+        return json.loads(data) if isinstance(data, str) else data
+    return None
 
 
 def db_save_profile(user_id, data):
-    if not sb or not user_id:
+    if not user_id:
         return
-    existing = sb.table("user_profile").select("id").eq("user_id", user_id).execute()
+    existing = _sb_get("user_profile", f"user_id=eq.{user_id}&select=id")
     data["updated_at"] = datetime.now(timezone.utc).isoformat()
-    if existing.data:
-        sb.table("user_profile").update(data).eq("user_id", user_id).execute()
+    if existing:
+        _sb_patch("user_profile", data, f"user_id=eq.{user_id}")
     else:
         data["user_id"] = user_id
-        sb.table("user_profile").insert(data).execute()
+        _sb_post("user_profile", data)
 
 
 def db_load_profile(user_id):
-    if not sb or not user_id:
+    if not user_id:
         return None
-    result = sb.table("user_profile").select("*").eq("user_id", user_id).limit(1).execute()
-    return result.data[0] if result.data else None
+    rows = _sb_get("user_profile", f"user_id=eq.{user_id}&limit=1")
+    return rows[0] if rows else None
 
 
 def get_voice_context(user_id):
@@ -164,37 +196,36 @@ def get_voice_context(user_id):
 
 
 def db_save_draft(user_id, tweets, fmt, topic, status="draft"):
-    if not sb or not user_id:
+    if not user_id:
         return None
-    result = sb.table("drafts").insert({
-        "user_id": user_id, "tweets": tweets, "format": fmt,
+    result = _sb_post("drafts", {
+        "user_id": user_id, "tweets": json.dumps(tweets), "format": fmt,
         "topic": topic, "status": status,
-    }).execute()
-    return result.data[0]["id"] if result.data else None
+    })
+    return result[0]["id"] if result else None
 
 
 def db_load_drafts(user_id, status=None):
-    if not sb or not user_id:
+    if not user_id:
         return []
-    q = sb.table("drafts").select("*").eq("user_id", user_id)
+    params = f"user_id=eq.{user_id}&order=created_at.desc"
     if status:
-        q = q.eq("status", status)
-    result = q.order("created_at", desc=True).execute()
-    return result.data or []
+        params += f"&status=eq.{status}"
+    rows = _sb_get("drafts", params)
+    for row in rows:
+        if isinstance(row.get("tweets"), str):
+            row["tweets"] = json.loads(row["tweets"])
+    return rows
 
 
 def db_delete_draft(draft_id, user_id):
-    if not sb:
-        return
-    sb.table("drafts").delete().eq("id", draft_id).eq("user_id", user_id).execute()
+    _sb_delete("drafts", f"id=eq.{draft_id}&user_id=eq.{user_id}")
 
 
 def db_mark_posted(draft_id, user_id):
-    if not sb:
-        return
-    sb.table("drafts").update({
+    _sb_patch("drafts", {
         "status": "posted", "posted_at": datetime.now(timezone.utc).isoformat(),
-    }).eq("id", draft_id).eq("user_id", user_id).execute()
+    }, f"id=eq.{draft_id}&user_id=eq.{user_id}")
 
 
 # -- X API helpers ---------------------------------------------------------
@@ -212,14 +243,14 @@ def generate_pkce():
 
 
 def exchange_code(code, verifier):
-    r = requests.post(TOKEN_URL, auth=(CLIENT_ID, CLIENT_SECRET),
+    r = req_lib.post(TOKEN_URL, auth=(CLIENT_ID, CLIENT_SECRET),
                       data={"grant_type": "authorization_code", "code": code,
                             "redirect_uri": get_redirect_uri(), "code_verifier": verifier})
     return r.json()
 
 
 def get_me(token):
-    r = requests.get("https://api.twitter.com/2/users/me", headers={"Authorization": f"Bearer {token}"})
+    r = req_lib.get("https://api.twitter.com/2/users/me", headers={"Authorization": f"Bearer {token}"})
     d = r.json()
     return d["data"]["id"], d["data"]["username"], d["data"]["name"]
 
@@ -234,7 +265,7 @@ def fetch_bookmarks_delta(token, user_id, since_id=None):
             params["pagination_token"] = cursor
         if since_id:
             params["since_id"] = since_id
-        r = requests.get(f"https://api.twitter.com/2/users/{user_id}/bookmarks",
+        r = req_lib.get(f"https://api.twitter.com/2/users/{user_id}/bookmarks",
                          headers={"Authorization": f"Bearer {token}"}, params=params)
         data = r.json()
         if "data" not in data:
@@ -269,7 +300,7 @@ def fetch_tweets_delta(token, user_id, since_id=None):
             params["pagination_token"] = cursor
         if since_id:
             params["since_id"] = since_id
-        r = requests.get(f"https://api.twitter.com/2/users/{user_id}/tweets",
+        r = req_lib.get(f"https://api.twitter.com/2/users/{user_id}/tweets",
                          headers={"Authorization": f"Bearer {token}"}, params=params)
         data = r.json()
         if "data" not in data:
@@ -527,15 +558,14 @@ def ensure_db_uid():
     if db_uid:
         return db_uid
     x_uid = session.get("user_id")
-    if not x_uid or not sb:
+    if not x_uid or not SUPABASE_URL:
         return None
     try:
-        existing = sb.table("users").select("id").eq("x_user_id", x_uid).execute()
-        if existing.data:
-            db_uid = existing.data[0]["id"]
+        existing = _sb_get("users", f"x_user_id=eq.{x_uid}&select=id")
+        if existing:
+            db_uid = existing[0]["id"]
             session["db_user_id"] = db_uid
             return db_uid
-        # Create user if not exists
         uname = session.get("username", "")
         name = session.get("name", "")
         token = session.get("access_token", "")
@@ -857,7 +887,7 @@ def compose_post():
         body = {"text": tweet_text}
         if reply_to:
             body["reply"] = {"in_reply_to_tweet_id": reply_to}
-        r = requests.post("https://api.twitter.com/2/tweets", headers=headers, json=body)
+        r = req_lib.post("https://api.twitter.com/2/tweets", headers=headers, json=body)
         data = r.json()
         if "data" in data:
             reply_to = data["data"]["id"]
@@ -927,60 +957,16 @@ def debug():
         "session_username": session.get("username"),
         "session_db_user_id": session.get("db_user_id"),
         "ensure_db_uid_result": db_uid,
-        "supabase_connected": sb is not None,
+        "supabase_url_set": bool(SUPABASE_URL),
     }
-    # Try to create user directly and capture error
-    if sb and not db_uid:
-        x_uid = session.get("user_id")
-        uname = session.get("username", "")
-        try:
-            result = sb.table("users").insert({
-                "x_user_id": str(x_uid), "username": uname,
-                "name": session.get("name", ""), "access_token": session.get("access_token", ""),
-            }).execute()
-            info["insert_result"] = str(result.data)
-            if result.data:
-                db_uid = result.data[0]["id"]
-                session["db_user_id"] = db_uid
-                info["new_db_uid"] = db_uid
-        except Exception as e:
-            info["insert_error"] = str(e)
-
-    # Check each table
-    if sb and db_uid:
-        try:
-            users = sb.table("users").select("id, x_user_id, username").eq("id", db_uid).execute()
-            info["users_table"] = users.data
-        except Exception as e:
-            info["users_error"] = str(e)
-        try:
-            bm = sb.table("bookmarks_cache").select("user_id, last_id, fetched_at").eq("user_id", db_uid).execute()
-            info["bookmarks_cache_rows"] = len(bm.data) if bm.data else 0
-            if bm.data:
-                # Check data size
-                bm_full = sb.table("bookmarks_cache").select("data").eq("user_id", db_uid).limit(1).execute()
-                if bm_full.data and bm_full.data[0].get("data"):
-                    info["bookmarks_data_count"] = len(bm_full.data[0]["data"]) if isinstance(bm_full.data[0]["data"], list) else "not a list"
-                else:
-                    info["bookmarks_data"] = "empty or null"
-        except Exception as e:
-            info["bookmarks_error"] = str(e)
-        try:
-            tw = sb.table("tweets_cache").select("user_id, last_id, fetched_at").eq("user_id", db_uid).execute()
-            info["tweets_cache_rows"] = len(tw.data) if tw.data else 0
-            if tw.data:
-                tw_full = sb.table("tweets_cache").select("data").eq("user_id", db_uid).limit(1).execute()
-                if tw_full.data and tw_full.data[0].get("data"):
-                    info["tweets_data_count"] = len(tw_full.data[0]["data"]) if isinstance(tw_full.data[0]["data"], list) else "not a list"
-                else:
-                    info["tweets_data"] = "empty or null"
-        except Exception as e:
-            info["tweets_error"] = str(e)
-        try:
-            dr = sb.table("drafts").select("id, topic, status").eq("user_id", db_uid).execute()
-            info["drafts"] = dr.data
-        except Exception as e:
-            info["drafts_error"] = str(e)
+    if db_uid:
+        info["users"] = _sb_get("users", f"id=eq.{db_uid}&select=id,x_user_id,username")
+        bm = _sb_get("bookmarks_cache", f"user_id=eq.{db_uid}&select=last_id,fetched_at")
+        info["bookmarks_rows"] = len(bm)
+        tw = _sb_get("tweets_cache", f"user_id=eq.{db_uid}&select=last_id,fetched_at")
+        info["tweets_rows"] = len(tw)
+        info["drafts"] = _sb_get("drafts", f"user_id=eq.{db_uid}&select=id,topic,status")
+        info["profile"] = bool(_sb_get("user_profile", f"user_id=eq.{db_uid}&select=id"))
         try:
             pr = sb.table("user_profile").select("bio, expertise").eq("user_id", db_uid).execute()
             info["profile_exists"] = bool(pr.data)
