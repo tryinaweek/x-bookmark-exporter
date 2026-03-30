@@ -523,7 +523,7 @@ def _safe_db(fn, *args, **kwargs):
 
 def ensure_db_uid():
     """Make sure db_user_id is set in session, recover if missing."""
-    db_uid = ensure_db_uid()
+    db_uid = session.get("db_user_id")
     if db_uid:
         return db_uid
     x_uid = session.get("user_id")
