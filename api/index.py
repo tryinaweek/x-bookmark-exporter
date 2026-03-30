@@ -1094,7 +1094,7 @@ def run_cron():
     if not SUPABASE_URL:
         return json.dumps({"status": "no supabase"}), 200
 
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     due = _sb_get("drafts", f"status=eq.scheduled&scheduled_at=lte.{now}&select=id,user_id,tweets")
     if not due:
