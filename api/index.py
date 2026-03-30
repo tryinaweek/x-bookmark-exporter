@@ -29,7 +29,10 @@ TOKEN_URL = "https://api.twitter.com/2/oauth2/token"
 SCOPES = "bookmark.read tweet.read tweet.write users.read offline.access"
 
 # Supabase client
-sb = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
+try:
+    sb = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
+except Exception:
+    sb = None
 
 
 # -- DB helpers ------------------------------------------------------------
