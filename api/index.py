@@ -23,6 +23,8 @@ CLAUDE_API_KEY = os.environ.get("CLAUDE_API_KEY", "")
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 
+OWNER_X_ID = os.environ.get("OWNER_X_ID", "25914613")  # Your X user ID - full access
+
 AUTH_URL = "https://twitter.com/i/oauth2/authorize"
 TOKEN_URL = "https://api.twitter.com/2/oauth2/token"
 SCOPES = "bookmark.read tweet.read tweet.write users.read offline.access"
@@ -255,11 +257,16 @@ def get_me(token):
     return d["data"]["id"], d["data"]["username"], d["data"]["name"]
 
 
-def fetch_bookmarks_delta(token, user_id, since_id=None):
+def is_owner():
+    return str(session.get("user_id", "")) == str(OWNER_X_ID)
+
+
+def fetch_bookmarks_delta(token, user_id, since_id=None, max_items=None):
     """Fetch bookmarks. If since_id provided, only fetches newer ones."""
     bookmarks, cursor, api_error = [], None, None
+    fetch_size = min(max_items, 100) if max_items else 100
     while True:
-        params = {"max_results": 100, "tweet.fields": "created_at,text,author_id,public_metrics",
+        params = {"max_results": fetch_size, "tweet.fields": "created_at,text,author_id,public_metrics",
                   "user.fields": "name,username", "expansions": "author_id"}
         if cursor:
             params["pagination_token"] = cursor
@@ -283,18 +290,21 @@ def fetch_bookmarks_delta(token, user_id, since_id=None):
                 "likes": m.get("like_count", 0), "retweets": m.get("retweet_count", 0),
                 "url": f"https://twitter.com/{au.get('username', '')}/status/{t.get('id', '')}",
             })
+        if max_items and len(bookmarks) >= max_items:
+            break
         cursor = data.get("meta", {}).get("next_token")
         if not cursor:
             break
-    return bookmarks, api_error
+    return bookmarks[:max_items] if max_items else bookmarks, api_error
 
 
-def fetch_tweets_delta(token, user_id, since_id=None):
+def fetch_tweets_delta(token, user_id, since_id=None, max_pages=5, max_items=None):
     """Fetch user tweets. If since_id provided, only fetches newer ones."""
     tweets, cursor, api_error = [], None, None
+    fetch_size = min(max_items, 100) if max_items else 100
     pages = 0
-    while pages < 5:
-        params = {"max_results": 100, "tweet.fields": "created_at,text,public_metrics,source",
+    while pages < max_pages:
+        params = {"max_results": fetch_size, "tweet.fields": "created_at,text,public_metrics,source",
                   "exclude": "retweets,replies"}
         if cursor:
             params["pagination_token"] = cursor
@@ -316,11 +326,13 @@ def fetch_tweets_delta(token, user_id, since_id=None):
                 "replies": m.get("reply_count", 0), "impressions": m.get("impression_count", 0),
                 "url": f"https://twitter.com/i/status/{t.get('id', '')}",
             })
+        if max_items and len(tweets) >= max_items:
+            break
         cursor = data.get("meta", {}).get("next_token")
         if not cursor:
             break
         pages += 1
-    return tweets, api_error
+    return tweets[:max_items] if max_items else tweets, api_error
 
 
 # -- AI helpers ------------------------------------------------------------
@@ -671,11 +683,12 @@ def sync():
 
     errors = []
     stats = []
+    test_limit = None if is_owner() else 20
 
     # Delta bookmarks
     try:
         _, bm_last_id, _ = db_load_cache_full("bookmarks_cache", db_uid)
-        new_bm, bm_err = fetch_bookmarks_delta(token, uid, since_id=bm_last_id)
+        new_bm, bm_err = fetch_bookmarks_delta(token, uid, since_id=bm_last_id, max_items=test_limit)
         if bm_err:
             errors.append(f"Bookmarks: {bm_err}")
         elif new_bm:
@@ -690,7 +703,7 @@ def sync():
     # Delta tweets
     try:
         _, tw_last_id, _ = db_load_cache_full("tweets_cache", db_uid)
-        new_tw, tw_err = fetch_tweets_delta(token, uid, since_id=tw_last_id)
+        new_tw, tw_err = fetch_tweets_delta(token, uid, since_id=tw_last_id, max_pages=1 if test_limit else 5, max_items=test_limit)
         if tw_err:
             errors.append(f"Tweets: {tw_err}")
         elif new_tw:
