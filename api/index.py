@@ -987,6 +987,21 @@ def calendar_reschedule(draft_id):
     return redirect("/calendar")
 
 
+@app.route("/calendar/edit/<draft_id>", methods=["POST"])
+def calendar_edit(draft_id):
+    if not session.get("access_token"):
+        return redirect("/")
+    db_uid = ensure_db_uid()
+    tweets_json = request.form.get("tweets", "[]")
+    try:
+        tweets = json.loads(tweets_json)
+    except json.JSONDecodeError:
+        return redirect("/calendar")
+    if tweets:
+        _sb_patch("drafts", {"tweets": json.dumps(tweets)}, f"id=eq.{draft_id}&user_id=eq.{db_uid}")
+    return redirect("/calendar")
+
+
 @app.route("/calendar/delete/<draft_id>", methods=["POST"])
 def calendar_delete(draft_id):
     if not session.get("access_token"):

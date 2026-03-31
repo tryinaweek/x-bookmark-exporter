@@ -102,14 +102,17 @@
       {% if item.topic %}
       <div class="schedule-topic">{{ item.topic }}</div>
       {% endif %}
-      <div class="schedule-preview">{{ item.tweets[0][:200] if item.tweets else '' }}{% if item.tweets and item.tweets[0]|length > 200 %}...{% endif %}</div>
-      {% if item.tweets|length > 1 %}
-      <div class="schedule-meta">+ {{ item.tweets|length - 1 }} more tweets in thread</div>
-      {% endif %}
+      <div class="draft-tweets" style="margin-bottom:12px;">
+        {% for tweet in item.tweets %}
+        <textarea class="cal-edit" data-id="{{ item.id }}" rows="3" style="width:100%; border:1px solid #e5e5e5; border-radius:8px; padding:10px; font-size:14px; font-family:inherit; line-height:1.6; resize:vertical; outline:none; margin-bottom:6px; background:#fafafa;" onfocus="this.style.background='#fff'; this.style.borderColor='#7c3aed';" onblur="this.style.background='#fafafa'; this.style.borderColor='#e5e5e5';">{{ tweet }}</textarea>
+        {% endfor %}
+      </div>
       <div class="schedule-actions">
-        <form method="POST" action="/calendar/post-now/{{ item.id }}" style="display:inline">
-          <button type="submit" class="btn btn-sm btn-blue">Post Now</button>
+        <form method="POST" action="/calendar/post-now/{{ item.id }}" style="display:inline" class="cal-post-{{ item.id }}">
+          <input type="hidden" name="tweets_override" class="cal-tweets-{{ item.id }}" value="">
+          <button type="submit" class="btn btn-sm btn-blue" onclick="updateCalTweets('{{ item.id }}')">Post Now</button>
         </form>
+        <button class="btn btn-sm btn-secondary" onclick="saveCalEdit('{{ item.id }}')">Save Edits</button>
         <form method="POST" action="/calendar/reschedule/{{ item.id }}" style="display:inline; display:flex; gap:6px; align-items:center;">
           <input type="datetime-local" name="scheduled_at" value="{{ item.scheduled_at[:16] if item.scheduled_at else '' }}">
           <button type="submit" class="btn btn-sm btn-secondary">Reschedule</button>
@@ -118,6 +121,11 @@
           <button type="submit" class="btn btn-sm btn-secondary" style="color:#e0245e;">Delete</button>
         </form>
       </div>
+
+      <!-- Hidden edit save form -->
+      <form method="POST" action="/calendar/edit/{{ item.id }}" class="cal-save-form-{{ item.id }}" style="display:none;">
+        <input type="hidden" name="tweets" class="cal-save-tweets-{{ item.id }}">
+      </form>
     </div>
     {% endfor %}
   </div>
@@ -145,5 +153,23 @@
   {% endif %}
 
 </div>
+
+<script>
+function getCalTweets(id) {
+  var textareas = document.querySelectorAll('.cal-edit[data-id="' + id + '"]');
+  return Array.from(textareas).map(function(t) { return t.value.trim(); }).filter(function(t) { return t; });
+}
+
+function saveCalEdit(id) {
+  var tweets = getCalTweets(id);
+  document.querySelector('.cal-save-tweets-' + id).value = JSON.stringify(tweets);
+  document.querySelector('.cal-save-form-' + id).submit();
+}
+
+function updateCalTweets(id) {
+  var tweets = getCalTweets(id);
+  document.querySelector('.cal-tweets-' + id).value = JSON.stringify(tweets);
+}
+</script>
 </body>
 </html>
