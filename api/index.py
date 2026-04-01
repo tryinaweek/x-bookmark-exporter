@@ -583,34 +583,74 @@ def _gather_linkedin_context(db_uid):
     return "\n".join(parts)
 
 
-def generate_linkedin_ideas(username, db_uid):
-    """Step 1: Generate 8 LinkedIn-native content angles."""
+def generate_linkedin_ideas(username, db_uid, seed_topic=None):
+    """Step 1: Generate 8 LinkedIn-native content angles.
+
+    Returns list of dicts with keys: title, angle, core_claim, post_type,
+    why_now, proof_hint, recommended_hook.
+    """
     if not CLAUDE_API_KEY:
         return []
     context = _gather_linkedin_context(db_uid)
-    prompt = f"""LinkedIn content strategist for {username}.
 
+    topic_clause = ""
+    if seed_topic:
+        topic_clause = f"""
+The user provided a seed topic: "{seed_topic}"
+Generate ideas that explore DIFFERENT angles on this topic — not 8 versions of the same take.
+Each idea should find a distinct entry point into the subject."""
+
+    prompt = f"""You are a LinkedIn content strategist for {username}.
+
+=== USER CONTEXT ===
 {context}
+{topic_clause}
 
-Generate 8 LinkedIn post angles. These are NOT tweet ideas — they are LinkedIn-native angles that work on LinkedIn's algorithm and audience.
+=== TASK ===
+Generate exactly 8 LinkedIn post ideas. These are NOT tweets. They are LinkedIn-native angles
+designed for the LinkedIn feed algorithm and a professional audience.
 
-LinkedIn angles should be:
-- Contrarian or surprising (challenges a popular belief in their industry)
-- Experience-based (can only be written by someone who's actually done the thing)
-- Specific (references real projects, real numbers, real decisions)
-- Discussion-worthy (people will comment because they have an opinion)
+=== QUALITY BAR ===
+Each idea must meet ALL of these:
+1. ANGLE-FIRST: Lead with the surprising or contrarian framing, not a broad topic.
+2. CLAIM-SPECIFIC: State the core claim in one falsifiable sentence. If you can't, the idea is too vague — make it narrower.
+3. PROOF-GROUNDED: Point to a specific experience, project, number, or decision from the user's context that could back this up. If evidence is weak, make the idea more observational and narrower.
+4. CREDIBLE AUTHORITY: The user is a founder/operator. Prefer practical authority (I built/shipped/invested in X) over broad commentary (the industry is changing).
+5. DISCUSSION-WORTHY: The claim should split the room — reasonable people could disagree.
 
-Mix of types:
-- 2 "hot take" angles (challenge conventional wisdom)
-- 2 "behind the scenes" angles (what really happened vs what people assume)
-- 2 "framework/playbook" angles (a reusable process from their experience)
-- 2 "story" angles (a specific moment/decision that taught them something)
+=== POST TYPES (use exactly these values) ===
+- contrarian_lesson: Challenges a popular belief with proof from experience
+- founder_story: A specific moment, decision, or failure that taught something non-obvious
+- operator_framework: A reusable process or mental model extracted from doing the work
+- market_observation: A pattern spotted from operating/investing that others haven't named yet
+- bookmark_distillation: A synthesis of what the user has been reading, turned into a thesis
+- pattern_recognition: A connection between 2-3 things that reveals a larger trend
+- build_in_public_update: What happened this week/month with a real project — the messy truth
 
+=== MIX ===
+Across the 8 ideas, use at least 5 different post_type values. No more than 2 of the same type.
+
+=== OUTPUT FORMAT ===
 Return ONLY valid JSON:
-{{"ideas":[{{"topic":"5-10 word title","angle":"The specific contrarian/surprising angle in one sentence","type":"hot_take|behind_scenes|framework|story","proof_hint":"What personal experience backs this up"}}]}}"""
+{{"ideas":[{{
+  "title":"5-12 word working title",
+  "angle":"One sentence: the specific framing that makes this interesting",
+  "core_claim":"One falsifiable sentence: the central argument",
+  "post_type":"one of the 7 values above",
+  "why_now":"One sentence: why this is relevant right now, not 6 months ago",
+  "proof_hint":"What specific personal experience, project, or data backs this up",
+  "recommended_hook":"The literal opening line of the post — bold, specific, scroll-stopping"
+}}]}}
+
+=== ANTI-PATTERNS (reject any idea that does this) ===
+- Generic advice anyone could give ("focus on value", "be authentic")
+- Topic-only ideas without a specific angle ("AI in 2026")
+- Motivational framing ("Here's what I learned about resilience")
+- Ideas that require expertise the user doesn't have
+- Broad commentary without a personal stake"""
 
     try:
-        result, _ = _call_claude(prompt, max_tokens=2048)
+        result, _ = _call_claude(prompt, max_tokens=3072)
         return result.get("ideas", []) if result else []
     except Exception:
         return []
@@ -1097,10 +1137,12 @@ def linkedin_ideas():
     if not session.get("access_token"):
         return redirect("/")
     db_uid = ensure_db_uid()
-    ideas = generate_linkedin_ideas(session.get("username", ""), db_uid)
+    seed_topic = request.form.get("seed_topic", "").strip() or None
+    ideas = generate_linkedin_ideas(session.get("username", ""), db_uid, seed_topic=seed_topic)
     li_drafts = [d for d in (_safe_db(db_load_drafts, db_uid, "draft") or []) if d.get("format") == "linkedin"]
     return render_template("linkedin.html", connected=True, username=session.get("username", ""),
-                           step="ideas", ideas=ideas, saved_drafts=li_drafts[:5])
+                           step="ideas", ideas=ideas, seed_topic=seed_topic or "",
+                           saved_drafts=li_drafts[:5])
 
 
 @app.route("/linkedin/brief", methods=["POST"])
@@ -1108,20 +1150,29 @@ def linkedin_brief():
     if not session.get("access_token"):
         return redirect("/")
     db_uid = ensure_db_uid()
-    topic = request.form.get("topic", "").strip()
+    title = request.form.get("title", "").strip()
     angle = request.form.get("angle", "").strip()
+    core_claim = request.form.get("core_claim", "").strip()
+    recommended_hook = request.form.get("recommended_hook", "").strip()
     custom_topic = request.form.get("custom_topic", "").strip()
 
     if custom_topic:
-        topic = custom_topic
+        title = custom_topic
         angle = custom_topic
 
-    if not topic:
+    if not title:
         return redirect("/linkedin")
 
-    brief = generate_linkedin_brief(session.get("username", ""), db_uid, topic, angle)
+    # Pass richer context to brief generator
+    idea_context = angle
+    if core_claim:
+        idea_context += f"\nCore claim: {core_claim}"
+    if recommended_hook:
+        idea_context += f"\nSuggested hook: {recommended_hook}"
+
+    brief = generate_linkedin_brief(session.get("username", ""), db_uid, title, idea_context)
     return render_template("linkedin.html", connected=True, username=session.get("username", ""),
-                           step="brief", brief=brief, topic=topic, angle=angle)
+                           step="brief", brief=brief, topic=title, angle=angle)
 
 
 @app.route("/linkedin/drafts", methods=["POST"])

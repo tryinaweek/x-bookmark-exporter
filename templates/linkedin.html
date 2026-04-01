@@ -182,21 +182,23 @@
     </div>
   </div>
 
-  <!-- ===== STEP: START (write your own + generate ideas) ===== -->
+  <!-- ===== STEP: START ===== -->
   {% if step == 'start' %}
   <div class="card">
     <div class="card-header">
-      <span class="card-title">Write about a topic</span>
-      <span class="card-sub">AI generates a brief + 3 post variants</span>
+      <span class="card-title">Start with a topic</span>
+      <span class="card-sub">Optional — leave blank to generate from your profile</span>
     </div>
-    <form method="POST" action="/linkedin/generate">
-      <textarea class="compose-input" name="topic" rows="3" placeholder="e.g. Why I passed on a $2M ARR startup — and what the founder taught me about churn"></textarea>
+    <form method="POST" action="/linkedin/ideas" id="ideasForm">
+      <textarea class="compose-input" name="seed_topic" rows="2" placeholder="e.g. Why I passed on a $2M ARR startup — and what the founder taught me about churn"></textarea>
       <div class="compose-footer">
-        <span style="font-size:11px; color:#aaa;">Skips to brief + drafts directly</span>
-        <button type="submit" class="btn btn-li btn-lg" onclick="showLoading('Generating LinkedIn post...')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/></svg>
-          Generate
-        </button>
+        <span style="font-size:11px; color:#aaa;">AI generates 8 angles based on your bookmarks, tweets, and voice</span>
+        <div style="display:flex; gap:8px;">
+          <button type="submit" class="btn btn-li btn-lg" onclick="showLoading('Generating 8 LinkedIn angles...')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/></svg>
+            Generate Ideas
+          </button>
+        </div>
       </div>
     </form>
   </div>
@@ -205,14 +207,14 @@
 
   <div class="card">
     <div class="card-header">
-      <span class="card-title">Get AI-generated angles</span>
-      <span class="card-sub">8 LinkedIn-native ideas based on your profile</span>
+      <span class="card-title">Skip to drafts</span>
+      <span class="card-sub">Go straight from topic to brief + 3 post variants</span>
     </div>
-    <form method="POST" action="/linkedin/ideas">
-      <button type="submit" class="btn btn-li" onclick="showLoading('Generating LinkedIn ideas...')">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-        Generate 8 Ideas
-      </button>
+    <form method="POST" action="/linkedin/generate">
+      <div style="display:flex; gap:10px; align-items:flex-start;">
+        <textarea class="compose-input" name="topic" rows="2" style="flex:1;" placeholder="Enter a specific topic to skip idea generation..."></textarea>
+        <button type="submit" class="btn btn-secondary btn-lg" style="white-space:nowrap;" onclick="showLoading('Generating LinkedIn post...')">Generate Direct</button>
+      </div>
     </form>
   </div>
   {% endif %}
@@ -222,24 +224,51 @@
   <div class="card">
     <div class="card-header">
       <span class="card-title">Pick an angle</span>
-      <span class="card-sub">Click one to generate a structured brief</span>
+      <span class="card-sub">{{ ideas|length }} ideas generated{% if seed_topic %} for "{{ seed_topic }}"{% endif %} — click one to build a brief</span>
     </div>
     <div class="idea-grid">
       {% for idea in ideas %}
       <form method="POST" action="/linkedin/brief" style="display:contents;">
-        <input type="hidden" name="topic" value="{{ idea.topic }}">
+        <input type="hidden" name="title" value="{{ idea.title }}">
         <input type="hidden" name="angle" value="{{ idea.angle }}">
-        <button type="submit" class="idea-card" style="text-align:left; background:none; font-family:inherit; cursor:pointer;" onclick="showLoading('Building brief...')">
-          <div class="idea-type {% if idea.type == 'hot_take' %}idea-type-hot{% elif idea.type == 'behind_scenes' %}idea-type-bts{% elif idea.type == 'framework' %}idea-type-fw{% else %}idea-type-story{% endif %}">{{ idea.type | replace('_', ' ') }}</div>
-          <div class="idea-topic">{{ idea.topic }}</div>
+        <input type="hidden" name="core_claim" value="{{ idea.core_claim }}">
+        <input type="hidden" name="recommended_hook" value="{{ idea.recommended_hook }}">
+        <button type="submit" class="idea-card" style="text-align:left; background:none; font-family:inherit; cursor:pointer; width:100%;" onclick="showLoading('Building brief...')">
+          {% set type_colors = {
+            'contrarian_lesson': 'idea-type-hot',
+            'founder_story': 'idea-type-story',
+            'operator_framework': 'idea-type-fw',
+            'market_observation': 'idea-type-bts',
+            'bookmark_distillation': 'idea-type-fw',
+            'pattern_recognition': 'idea-type-bts',
+            'build_in_public_update': 'idea-type-story'
+          } %}
+          <div class="idea-type {{ type_colors.get(idea.post_type, 'idea-type-fw') }}">{{ idea.post_type | replace('_', ' ') }}</div>
+          <div class="idea-topic">{{ idea.title }}</div>
           <div class="idea-angle">{{ idea.angle }}</div>
+          {% if idea.core_claim %}
+          <div style="font-size:12px; color:#333; margin:4px 0; padding:6px 8px; background:#f8f8f8; border-radius:6px; line-height:1.4; border-left:2px solid #0A66C2;">"{{ idea.core_claim }}"</div>
+          {% endif %}
+          {% if idea.why_now %}
+          <div style="font-size:11px; color:#0A66C2; margin-top:4px; font-weight:500;">{{ idea.why_now }}</div>
+          {% endif %}
           {% if idea.proof_hint %}<div class="idea-proof">{{ idea.proof_hint }}</div>{% endif %}
+          {% if idea.recommended_hook %}
+          <div style="font-size:11px; color:#666; margin-top:6px; padding-top:6px; border-top:1px solid #f0f0f0;">
+            <span style="font-size:10px; font-weight:600; color:#999; text-transform:uppercase; letter-spacing:0.5px;">Hook:</span>
+            {{ idea.recommended_hook }}
+          </div>
+          {% endif %}
         </button>
       </form>
       {% endfor %}
     </div>
-    <div style="margin-top:12px;">
+    <div style="margin-top:14px; display:flex; gap:8px; align-items:center;">
       <a href="/linkedin" class="btn btn-sm btn-secondary">Start over</a>
+      <form method="POST" action="/linkedin/ideas" style="display:inline;">
+        {% if seed_topic %}<input type="hidden" name="seed_topic" value="{{ seed_topic }}">{% endif %}
+        <button type="submit" class="btn btn-sm btn-secondary" onclick="showLoading('Regenerating ideas...')">Regenerate</button>
+      </form>
     </div>
   </div>
   {% endif %}
