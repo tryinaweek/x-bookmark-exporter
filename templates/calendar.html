@@ -9,7 +9,7 @@
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f8f8f8; color: #1a1a1a; min-height: 100vh; display: flex; }
 
     /* Sidebar */
-    .sidebar { width: 220px; background: #fff; border-right: 1px solid #eee; padding: 20px 0; position: fixed; top: 0; left: 0; bottom: 0; display: flex; flex-direction: column; }
+    .sidebar { width: 220px; background: #fff; border-right: 1px solid #eee; padding: 20px 0; position: fixed; top: 0; left: 0; bottom: 0; display: flex; flex-direction: column; z-index: 10; }
     .sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 0 20px; margin-bottom: 28px; text-decoration: none; color: #1a1a1a; }
     .sidebar-brand svg { width: 22px; height: 22px; flex-shrink: 0; }
     .sidebar-brand span { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
@@ -26,7 +26,7 @@
     .sidebar-signout:hover { text-decoration: underline; }
 
     /* Main content */
-    .main { margin-left: 220px; flex: 1; padding: 28px 32px; max-width: 860px; }
+    .main { margin-left: 220px; flex: 1; padding: 28px 32px; }
     @media (max-width: 768px) {
       .sidebar { display: none; }
       .main { margin-left: 0; padding: 20px 16px; }
@@ -34,9 +34,6 @@
 
     .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
     .page-title { font-size: 22px; font-weight: 700; }
-
-    .card { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 18px; margin-bottom: 16px; }
-    .card h2 { font-size: 15px; font-weight: 600; margin-bottom: 14px; color: #333; }
 
     .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; text-decoration: none; transition: all 0.15s; }
     .btn:hover { opacity: 0.88; }
@@ -46,20 +43,70 @@
     .btn-sm { padding: 5px 10px; font-size: 11px; }
 
     .error { background: #fff0f0; border: 1px solid #ffc0c0; border-radius: 8px; padding: 10px 14px; color: #c0392b; font-size: 12px; margin-bottom: 14px; }
-    .empty { text-align: center; padding: 48px 20px; color: #aaa; font-size: 13px; }
 
-    .schedule-card { border: 1px solid #eee; border-radius: 10px; padding: 16px; margin-bottom: 12px; border-left: 4px solid #7c3aed; }
-    .schedule-card.posted { border-left-color: #00ba7c; opacity: 0.7; }
-    .schedule-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    .schedule-time { font-size: 13px; font-weight: 600; color: #7c3aed; }
-    .schedule-card.posted .schedule-time { color: #00ba7c; }
-    .schedule-badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
-    .badge-scheduled { background: #f3edff; color: #7c3aed; }
+    /* Calendar layout: grid left + detail right */
+    .cal-layout { display: grid; grid-template-columns: 1fr 380px; gap: 20px; align-items: start; }
+    @media (max-width: 960px) { .cal-layout { grid-template-columns: 1fr; } }
+
+    /* Month grid card */
+    .cal-card { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 20px; }
+    .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .cal-month-label { font-size: 16px; font-weight: 700; }
+    .cal-nav-btn { width: 30px; height: 30px; border-radius: 7px; border: 1px solid #eee; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #666; font-size: 16px; transition: all 0.15s; }
+    .cal-nav-btn:hover { border-color: #ccc; background: #f8f8f8; }
+    .cal-nav-btns { display: flex; gap: 4px; }
+
+    .cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 4px; }
+    .cal-wd { text-align: center; font-size: 11px; font-weight: 600; color: #bbb; padding: 6px 0; }
+
+    .cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+    .cal-day { min-height: 64px; padding: 6px; border-radius: 8px; cursor: pointer; transition: background 0.1s; border: 2px solid transparent; }
+    .cal-day:hover { background: #f8f8f8; }
+    .cal-day.other { opacity: 0.25; }
+    .cal-day.today { background: #faf5ff; }
+    .cal-day.selected { border-color: #7c3aed; background: #faf5ff; }
+    .cal-day-num { font-size: 12px; font-weight: 600; color: #333; margin-bottom: 4px; }
+    .cal-day.today .cal-day-num { color: #7c3aed; }
+    .cal-day-events { display: flex; flex-direction: column; gap: 2px; }
+    .cal-day-event { font-size: 9px; font-weight: 600; padding: 2px 5px; border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
+    .cal-day-event.sched { background: #f3edff; color: #7c3aed; }
+    .cal-day-event.posted { background: #f0fdf4; color: #166534; }
+    .cal-day-more { font-size: 9px; color: #999; padding: 1px 5px; }
+
+    /* Detail panel */
+    .cal-detail { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 18px; position: sticky; top: 28px; }
+    .cal-detail-date { font-size: 15px; font-weight: 700; color: #333; margin-bottom: 4px; }
+    .cal-detail-sub { font-size: 11px; color: #aaa; margin-bottom: 14px; }
+    .cal-detail-empty { font-size: 13px; color: #bbb; padding: 20px 0; text-align: center; }
+
+    /* Items in detail panel */
+    .cal-item { border: 1px solid #f0f0f0; border-radius: 8px; padding: 12px; margin-bottom: 10px; border-left: 3px solid #7c3aed; }
+    .cal-item:last-child { margin-bottom: 0; }
+    .cal-item.is-posted { border-left-color: #00ba7c; }
+    .cal-item-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .cal-item-time { font-size: 12px; font-weight: 600; color: #7c3aed; display: flex; align-items: center; gap: 4px; }
+    .cal-item.is-posted .cal-item-time { color: #00ba7c; }
+    .cal-item-badge { font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 6px; }
+    .badge-sched { background: #f3edff; color: #7c3aed; }
     .badge-posted { background: #f0fdf4; color: #166534; }
-    .schedule-topic { font-size: 12px; color: #888; margin-bottom: 6px; }
-    .schedule-preview { font-size: 13px; line-height: 1.6; color: #333; background: #fafafa; border-radius: 8px; padding: 10px; margin-bottom: 10px; white-space: pre-wrap; }
-    .schedule-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-    .schedule-actions input[type="datetime-local"] { font-size: 11px; padding: 4px 8px; border: 1px solid #ddd; border-radius: 6px; outline: none; }
+    .cal-item-topic { font-size: 11px; color: #888; margin-bottom: 4px; }
+    .cal-item-text { font-size: 12px; line-height: 1.5; color: #333; }
+
+    /* Upcoming list below calendar */
+    .upcoming-section { margin-top: 20px; }
+    .upcoming-title { font-size: 13px; font-weight: 700; color: #333; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .upcoming-count { font-size: 11px; color: #999; font-weight: 400; }
+
+    .upcoming-item { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 14px; margin-bottom: 10px; border-left: 4px solid #7c3aed; }
+    .upcoming-item-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .upcoming-item-time { font-size: 13px; font-weight: 600; color: #7c3aed; display: flex; align-items: center; gap: 6px; }
+    .upcoming-item-badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 8px; background: #f3edff; color: #7c3aed; }
+    .upcoming-item-topic { font-size: 12px; color: #888; margin-bottom: 6px; }
+    .upcoming-item-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
+    .upcoming-item-actions input[type="datetime-local"] { font-size: 11px; padding: 4px 8px; border: 1px solid #ddd; border-radius: 6px; outline: none; }
+
+    .cal-edit-area { width: 100%; border: 1px solid #f0f0f0; border-radius: 6px; padding: 8px 10px; font-size: 13px; font-family: inherit; line-height: 1.5; resize: vertical; outline: none; margin-bottom: 4px; background: #fafafa; min-height: 50px; }
+    .cal-edit-area:focus { border-color: #7c3aed; background: #fff; }
   </style>
 </head>
 <body>
@@ -119,87 +166,220 @@
 
   <div class="page-header">
     <h1 class="page-title">Content Calendar</h1>
-    <a href="/compose" class="btn btn-ai">New Post</a>
+    <a href="/compose" class="btn btn-ai">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New Post
+    </a>
   </div>
 
-  {% if scheduled %}
-  <div class="card">
-    <h2>Upcoming ({{ scheduled|length }})</h2>
-    {% for item in scheduled %}
-    <div class="schedule-card">
-      <div class="schedule-header">
-        <div class="schedule-time">{{ item.scheduled_at[:16].replace('T', ' at ') if item.scheduled_at else 'No time set' }}</div>
-        <span class="schedule-badge badge-scheduled">{{ item.format or 'tweet' }}</span>
+  <div class="cal-layout">
+    <!-- Left: Month grid + upcoming list -->
+    <div>
+      <div class="cal-card">
+        <div class="cal-nav">
+          <span class="cal-month-label" id="calMonthLabel"></span>
+          <div class="cal-nav-btns">
+            <button class="cal-nav-btn" onclick="changeMonth(-1)">&lsaquo;</button>
+            <button class="cal-nav-btn" onclick="goToday()" style="font-size:11px; width:auto; padding:0 10px;">Today</button>
+            <button class="cal-nav-btn" onclick="changeMonth(1)">&rsaquo;</button>
+          </div>
+        </div>
+        <div class="cal-weekdays">
+          <div class="cal-wd">Mon</div><div class="cal-wd">Tue</div><div class="cal-wd">Wed</div><div class="cal-wd">Thu</div><div class="cal-wd">Fri</div><div class="cal-wd">Sat</div><div class="cal-wd">Sun</div>
+        </div>
+        <div class="cal-days" id="calDays"></div>
       </div>
-      {% if item.topic %}
-      <div class="schedule-topic">{{ item.topic }}</div>
-      {% endif %}
-      <div class="draft-tweets" style="margin-bottom:10px;">
-        {% for tweet in item.tweets %}
-        <textarea class="cal-edit" data-id="{{ item.id }}" rows="3" style="width:100%; border:1px solid #eee; border-radius:8px; padding:8px 10px; font-size:13px; font-family:inherit; line-height:1.6; resize:vertical; outline:none; margin-bottom:4px; background:#fafafa;" onfocus="this.style.background='#fff'; this.style.borderColor='#7c3aed';" onblur="this.style.background='#fafafa'; this.style.borderColor='#eee';">{{ tweet }}</textarea>
+
+      <!-- Upcoming scheduled items (editable) -->
+      {% if scheduled %}
+      <div class="upcoming-section">
+        <div class="upcoming-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Scheduled <span class="upcoming-count">({{ scheduled|length }})</span>
+        </div>
+        {% for item in scheduled %}
+        <div class="upcoming-item">
+          <div class="upcoming-item-header">
+            <div class="upcoming-item-time">
+              {{ item.scheduled_at[:16].replace('T', ' at ') if item.scheduled_at else 'No time set' }}
+            </div>
+            <span class="upcoming-item-badge">{{ item.format or 'tweet' }}</span>
+          </div>
+          {% if item.topic %}<div class="upcoming-item-topic">{{ item.topic }}</div>{% endif %}
+          <div>
+            {% for tweet in item.tweets %}
+            <textarea class="cal-edit-area cal-edit" data-id="{{ item.id }}" rows="2">{{ tweet }}</textarea>
+            {% endfor %}
+          </div>
+          <div class="upcoming-item-actions">
+            <form method="POST" action="/calendar/post-now/{{ item.id }}" style="display:inline" class="cal-post-{{ item.id }}">
+              <input type="hidden" name="tweets_override" class="cal-tweets-{{ item.id }}" value="">
+              <button type="submit" class="btn btn-sm btn-blue" onclick="updateCalTweets('{{ item.id }}')">Post Now</button>
+            </form>
+            <button class="btn btn-sm btn-secondary" onclick="saveCalEdit('{{ item.id }}')">Save</button>
+            <form method="POST" action="/calendar/reschedule/{{ item.id }}" style="display:inline; display:flex; gap:4px; align-items:center;">
+              <input type="datetime-local" name="scheduled_at" value="{{ item.scheduled_at[:16] if item.scheduled_at else '' }}">
+              <button type="submit" class="btn btn-sm btn-secondary">Reschedule</button>
+            </form>
+            <form method="POST" action="/calendar/delete/{{ item.id }}" style="display:inline">
+              <button type="submit" class="btn btn-sm btn-secondary" style="color:#e0245e;">Delete</button>
+            </form>
+            <form method="POST" action="/calendar/edit/{{ item.id }}" class="cal-save-form-{{ item.id }}" style="display:none;">
+              <input type="hidden" name="tweets" class="cal-save-tweets-{{ item.id }}">
+            </form>
+          </div>
+        </div>
         {% endfor %}
       </div>
-      <div class="schedule-actions">
-        <form method="POST" action="/calendar/post-now/{{ item.id }}" style="display:inline" class="cal-post-{{ item.id }}">
-          <input type="hidden" name="tweets_override" class="cal-tweets-{{ item.id }}" value="">
-          <button type="submit" class="btn btn-sm btn-blue" onclick="updateCalTweets('{{ item.id }}')">Post Now</button>
-        </form>
-        <button class="btn btn-sm btn-secondary" onclick="saveCalEdit('{{ item.id }}')">Save Edits</button>
-        <form method="POST" action="/calendar/reschedule/{{ item.id }}" style="display:inline; display:flex; gap:4px; align-items:center;">
-          <input type="datetime-local" name="scheduled_at" value="{{ item.scheduled_at[:16] if item.scheduled_at else '' }}">
-          <button type="submit" class="btn btn-sm btn-secondary">Reschedule</button>
-        </form>
-        <form method="POST" action="/calendar/delete/{{ item.id }}" style="display:inline">
-          <button type="submit" class="btn btn-sm btn-secondary" style="color:#e0245e;">Delete</button>
-        </form>
-      </div>
-
-      <!-- Hidden edit save form -->
-      <form method="POST" action="/calendar/edit/{{ item.id }}" class="cal-save-form-{{ item.id }}" style="display:none;">
-        <input type="hidden" name="tweets" class="cal-save-tweets-{{ item.id }}">
-      </form>
+      {% endif %}
     </div>
-    {% endfor %}
-  </div>
-  {% endif %}
 
-  {% if not scheduled and not posted %}
-  <div class="card">
-    <div class="empty">No scheduled posts yet. <a href="/compose" style="color:#7c3aed;">Compose content</a> and schedule it for later.</div>
-  </div>
-  {% endif %}
-
-  {% if posted %}
-  <div class="card">
-    <h2>Recently Posted</h2>
-    {% for item in posted %}
-    <div class="schedule-card posted">
-      <div class="schedule-header">
-        <div class="schedule-time">Posted {{ item.posted_at[:16].replace('T', ' ') if item.posted_at else '' }}</div>
-        <span class="schedule-badge badge-posted">posted</span>
+    <!-- Right: Day detail panel -->
+    <div class="cal-detail" id="calDetail">
+      <div class="cal-detail-date" id="detailDate">Today</div>
+      <div class="cal-detail-sub" id="detailSub"></div>
+      <div id="detailContent">
+        <div class="cal-detail-empty">Select a day to see scheduled posts</div>
       </div>
-      <div class="schedule-preview">{{ item.tweets[0][:150] if item.tweets else '' }}{% if item.tweets and item.tweets[0]|length > 150 %}...{% endif %}</div>
     </div>
-    {% endfor %}
   </div>
-  {% endif %}
 
 </div>
 
 <script>
+var scheduled = [
+  {% for item in scheduled %}
+  { date: "{{ item.scheduled_at[:10] if item.scheduled_at else '' }}", time: "{{ item.scheduled_at[11:16] if item.scheduled_at else '' }}", topic: {{ item.topic|tojson if item.topic else '""' }}, text: {{ item.tweets[0][:100]|tojson if item.tweets else '""' }}, format: "{{ item.format or 'tweet' }}", type: "scheduled" },
+  {% endfor %}
+];
+var posted = [
+  {% for item in posted %}
+  { date: "{{ item.posted_at[:10] if item.posted_at else '' }}", time: "{{ item.posted_at[11:16] if item.posted_at else '' }}", topic: {{ item.topic|tojson if item.topic else '""' }}, text: {{ item.tweets[0][:100]|tojson if item.tweets else '""' }}, format: "{{ item.format or 'tweet' }}", type: "posted" },
+  {% endfor %}
+];
+var allItems = scheduled.concat(posted);
+
+var now = new Date();
+var viewYear = now.getFullYear(), viewMonth = now.getMonth();
+var selectedDate = '';
+
+function pad(n) { return n < 10 ? '0' + n : '' + n; }
+function todayStr() { var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); }
+function itemsFor(d) { return allItems.filter(function(i) { return i.date === d; }); }
+
+function renderCal() {
+  var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('calMonthLabel').textContent = months[viewMonth] + ' ' + viewYear;
+
+  var first = new Date(viewYear, viewMonth, 1);
+  var start = (first.getDay() + 6) % 7; // Monday=0
+  var dim = new Date(viewYear, viewMonth+1, 0).getDate();
+  var prevDim = new Date(viewYear, viewMonth, 0).getDate();
+  var today = todayStr();
+  var cells = Math.ceil((start + dim) / 7) * 7;
+  var html = '';
+
+  for (var i = 0; i < cells; i++) {
+    var num, ds, cls = 'cal-day';
+    if (i < start) {
+      num = prevDim - start + i + 1;
+      var pm = viewMonth === 0 ? 11 : viewMonth-1, py = viewMonth === 0 ? viewYear-1 : viewYear;
+      ds = py + '-' + pad(pm+1) + '-' + pad(num);
+      cls += ' other';
+    } else if (i >= start + dim) {
+      num = i - start - dim + 1;
+      var nm = viewMonth === 11 ? 0 : viewMonth+1, ny = viewMonth === 11 ? viewYear+1 : viewYear;
+      ds = ny + '-' + pad(nm+1) + '-' + pad(num);
+      cls += ' other';
+    } else {
+      num = i - start + 1;
+      ds = viewYear + '-' + pad(viewMonth+1) + '-' + pad(num);
+    }
+    if (ds === today) cls += ' today';
+    if (ds === selectedDate) cls += ' selected';
+
+    var events = itemsFor(ds);
+    var evHtml = '';
+    var shown = Math.min(events.length, 2);
+    for (var j = 0; j < shown; j++) {
+      var e = events[j];
+      var eCls = e.type === 'posted' ? 'posted' : 'sched';
+      var label = e.time || e.type;
+      evHtml += '<div class="cal-day-event ' + eCls + '">' + label + '</div>';
+    }
+    if (events.length > 2) evHtml += '<div class="cal-day-more">+' + (events.length - 2) + ' more</div>';
+
+    html += '<div class="' + cls + '" onclick="selectDay(\'' + ds + '\')">';
+    html += '<div class="cal-day-num">' + num + '</div>';
+    if (evHtml) html += '<div class="cal-day-events">' + evHtml + '</div>';
+    html += '</div>';
+  }
+  document.getElementById('calDays').innerHTML = html;
+}
+
+function selectDay(ds) {
+  selectedDate = ds;
+  renderCal();
+  var items = itemsFor(ds);
+  var parts = ds.split('-');
+  var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var dateObj = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+  var title = dayNames[dateObj.getDay()] + ', ' + months[parseInt(parts[1])-1] + ' ' + parseInt(parts[2]);
+  if (ds === todayStr()) title = 'Today \u2014 ' + title;
+  document.getElementById('detailDate').textContent = title;
+  document.getElementById('detailSub').textContent = items.length ? items.length + ' post' + (items.length > 1 ? 's' : '') : '';
+
+  var el = document.getElementById('detailContent');
+  if (!items.length) {
+    el.innerHTML = '<div class="cal-detail-empty">No posts on this day<br><a href="/compose" style="color:#7c3aed; font-size:12px; font-weight:600;">Schedule one &rarr;</a></div>';
+    return;
+  }
+  var h = '';
+  items.forEach(function(item) {
+    var ip = item.type === 'posted';
+    h += '<div class="cal-item' + (ip ? ' is-posted' : '') + '">';
+    h += '<div class="cal-item-header">';
+    h += '<div class="cal-item-time">' + (item.time || '--:--') + '</div>';
+    h += '<span class="cal-item-badge ' + (ip ? 'badge-posted' : 'badge-sched') + '">' + (ip ? 'posted' : item.format) + '</span>';
+    h += '</div>';
+    if (item.topic) h += '<div class="cal-item-topic">' + item.topic + '</div>';
+    h += '<div class="cal-item-text">' + item.text + '</div>';
+    h += '</div>';
+  });
+  el.innerHTML = h;
+}
+
+function changeMonth(d) {
+  viewMonth += d;
+  if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+  if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+  renderCal();
+}
+
+function goToday() {
+  var d = new Date();
+  viewYear = d.getFullYear();
+  viewMonth = d.getMonth();
+  selectDay(todayStr());
+}
+
 function getCalTweets(id) {
-  var textareas = document.querySelectorAll('.cal-edit[data-id="' + id + '"]');
-  return Array.from(textareas).map(function(t) { return t.value.trim(); }).filter(function(t) { return t; });
+  var ta = document.querySelectorAll('.cal-edit[data-id="' + id + '"]');
+  return Array.from(ta).map(function(t) { return t.value.trim(); }).filter(function(t) { return t; });
 }
 function saveCalEdit(id) {
-  var tweets = getCalTweets(id);
-  document.querySelector('.cal-save-tweets-' + id).value = JSON.stringify(tweets);
+  var tw = getCalTweets(id);
+  document.querySelector('.cal-save-tweets-' + id).value = JSON.stringify(tw);
   document.querySelector('.cal-save-form-' + id).submit();
 }
 function updateCalTweets(id) {
-  var tweets = getCalTweets(id);
-  document.querySelector('.cal-tweets-' + id).value = JSON.stringify(tweets);
+  var tw = getCalTweets(id);
+  document.querySelector('.cal-tweets-' + id).value = JSON.stringify(tw);
 }
+
+// Init
+selectDay(todayStr());
 </script>
 </body>
 </html>
