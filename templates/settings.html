@@ -9,7 +9,7 @@
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f8f8f8; color: #1a1a1a; min-height: 100vh; display: flex; }
 
     /* Sidebar */
-    .sidebar { width: 220px; background: #fff; border-right: 1px solid #eee; padding: 20px 0; position: fixed; top: 0; left: 0; bottom: 0; display: flex; flex-direction: column; }
+    .sidebar { width: 220px; background: #fff; border-right: 1px solid #eee; padding: 20px 0; position: fixed; top: 0; left: 0; bottom: 0; display: flex; flex-direction: column; z-index: 10; }
     .sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 0 20px; margin-bottom: 28px; text-decoration: none; color: #1a1a1a; }
     .sidebar-brand svg { width: 22px; height: 22px; flex-shrink: 0; }
     .sidebar-brand span { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
@@ -20,9 +20,13 @@
     .sidebar-link svg { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.5; }
     .sidebar-link.active svg { opacity: 1; }
     .sidebar-spacer { flex: 1; }
-    .sidebar-user { padding: 12px 20px; border-top: 1px solid #f0f0f0; }
-    .sidebar-username { font-size: 13px; font-weight: 600; color: #333; }
-    .sidebar-signout { font-size: 12px; color: #e0245e; text-decoration: none; margin-top: 4px; display: inline-block; }
+    .sidebar-user { padding: 14px 20px; border-top: 1px solid #f0f0f0; }
+    .sidebar-user-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .sidebar-avatar { width: 32px; height: 32px; background: #7c3aed; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+    .sidebar-user-info { min-width: 0; }
+    .sidebar-username { font-size: 13px; font-weight: 600; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sidebar-handle { font-size: 11px; color: #999; }
+    .sidebar-signout { font-size: 11px; color: #e0245e; text-decoration: none; display: inline-block; margin-left: 42px; }
     .sidebar-signout:hover { text-decoration: underline; }
 
     /* Main content */
@@ -32,22 +36,41 @@
       .main { margin-left: 0; padding: 20px 16px; }
     }
 
-    .page-header { margin-bottom: 20px; }
+    .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
     .page-title { font-size: 22px; font-weight: 700; }
-    .page-sub { font-size: 13px; color: #888; margin-top: 4px; line-height: 1.5; }
+    .page-sub { font-size: 13px; color: #888; margin-top: 2px; }
 
-    .card { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 18px; margin-bottom: 16px; }
-    .card h2 { font-size: 15px; font-weight: 600; margin-bottom: 3px; color: #333; }
-    .card-sub { font-size: 12px; color: #aaa; margin-bottom: 14px; }
+    /* Layout: form left, preview right */
+    .settings-layout { display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start; }
+    @media (max-width: 960px) { .settings-layout { grid-template-columns: 1fr; } }
 
-    .form-group { margin-bottom: 18px; }
-    .form-group:last-child { margin-bottom: 0; }
-    .form-label { display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 4px; }
-    .form-hint { font-size: 11px; color: #aaa; margin-bottom: 6px; line-height: 1.4; }
-    textarea, input[type="text"] { width: 100%; border: 1px solid #ddd; border-radius: 8px; padding: 10px 12px; font-size: 13px; font-family: inherit; outline: none; transition: border 0.15s; line-height: 1.6; }
-    textarea { resize: vertical; min-height: 80px; }
-    textarea:focus, input[type="text"]:focus { border-color: #7c3aed; }
+    /* Tabs */
+    .tab-bar { display: flex; gap: 0; background: #fff; border: 1px solid #eee; border-radius: 10px 10px 0 0; border-bottom: none; overflow: hidden; }
+    .tab-btn { flex: 1; padding: 12px 16px; font-size: 13px; font-weight: 600; color: #888; background: #fff; border: none; cursor: pointer; transition: all 0.15s; border-bottom: 2px solid transparent; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .tab-btn:hover { color: #555; background: #fafafa; }
+    .tab-btn.active { color: #7c3aed; border-bottom-color: #7c3aed; background: #faf8ff; }
+    .tab-btn svg { width: 15px; height: 15px; opacity: 0.5; }
+    .tab-btn.active svg { opacity: 1; }
 
+    .tab-content { background: #fff; border: 1px solid #eee; border-radius: 0 0 10px 10px; padding: 20px; display: none; }
+    .tab-content.active { display: block; }
+
+    /* Form fields */
+    .field { margin-bottom: 20px; }
+    .field:last-child { margin-bottom: 0; }
+    .field-label { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 3px; display: flex; align-items: center; gap: 6px; }
+    .field-hint { font-size: 11px; color: #aaa; margin-bottom: 6px; line-height: 1.4; }
+    .field-input { width: 100%; border: 1px solid #e5e5e5; border-radius: 8px; padding: 10px 12px; font-size: 13px; font-family: inherit; outline: none; transition: border 0.15s, box-shadow 0.15s; line-height: 1.6; background: #fff; }
+    .field-input:focus { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.06); }
+    textarea.field-input { resize: vertical; min-height: 80px; }
+    .field-footer { display: flex; justify-content: flex-end; margin-top: 4px; }
+    .field-count { font-size: 10px; color: #ccc; }
+
+    .tip-box { background: #faf8ff; border: 1px solid #e8e5ff; border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #666; line-height: 1.5; margin-bottom: 16px; }
+    .tip-box strong { color: #7c3aed; }
+
+    /* Save bar */
+    .save-bar { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
     .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; text-decoration: none; transition: all 0.15s; }
     .btn:hover { opacity: 0.88; }
     .btn-primary { background: #7c3aed; color: #fff; }
@@ -55,8 +78,22 @@
 
     .saved-msg { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 14px; color: #166534; font-size: 13px; margin-bottom: 16px; }
 
-    .example-note { background: #faf8ff; border: 1px solid #e8e5ff; border-radius: 8px; padding: 12px; font-size: 12px; color: #666; line-height: 1.5; margin-bottom: 12px; }
-    .example-note strong { color: #7c3aed; }
+    /* Preview card */
+    .preview-card { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 18px; position: sticky; top: 28px; }
+    .preview-title { font-size: 13px; font-weight: 700; color: #333; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+    .preview-section { margin-bottom: 14px; }
+    .preview-section:last-child { margin-bottom: 0; }
+    .preview-label { font-size: 10px; font-weight: 600; color: #bbb; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .preview-value { font-size: 12px; color: #555; line-height: 1.5; }
+    .preview-value.empty { color: #ccc; font-style: italic; }
+    .preview-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+    .preview-tag { font-size: 10px; padding: 2px 8px; border-radius: 6px; background: #f3edff; color: #7c3aed; font-weight: 500; }
+    .preview-divider { height: 1px; background: #f0f0f0; margin: 12px 0; }
+    .preview-stat { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #999; padding: 4px 0; }
+    .preview-stat-val { font-weight: 600; color: #333; }
+    .preview-stat-val.good { color: #166534; }
+    .preview-stat-val.warn { color: #d97706; }
+    .preview-stat-val.empty { color: #ddd; }
   </style>
 </head>
 <body>
@@ -102,7 +139,13 @@
     Settings
   </a>
   <div class="sidebar-user">
-    <div class="sidebar-username">@{{ username }}</div>
+    <div class="sidebar-user-row">
+      <div class="sidebar-avatar">{{ username[0].upper() if username else '?' }}</div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-username">{{ username }}</div>
+        <div class="sidebar-handle">@{{ username }}</div>
+      </div>
+    </div>
     <a href="/logout" class="sidebar-signout">Sign out</a>
   </div>
 </aside>
@@ -115,47 +158,62 @@
   {% endif %}
 
   <div class="page-header">
-    <h1 class="page-title">Voice Profile</h1>
-    <p class="page-sub">This is how the AI understands you. The more specific you are, the more your generated content will sound like YOU.</p>
+    <div>
+      <h1 class="page-title">Voice Profile</h1>
+      <p class="page-sub">The more specific you are, the more AI content sounds like you.</p>
+    </div>
   </div>
 
   <form method="POST" action="/settings/save">
+    <div class="settings-layout">
+      <!-- Left: Tabbed form -->
+      <div>
+        <div class="tab-bar">
+          <button type="button" class="tab-btn active" onclick="switchTab(this, 'profile')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Profile
+          </button>
+          <button type="button" class="tab-btn" onclick="switchTab(this, 'voice')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            Voice
+          </button>
+          <button type="button" class="tab-btn" onclick="switchTab(this, 'opinions')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            Opinions
+          </button>
+        </div>
 
-    <div class="card">
-      <h2>Who You Are</h2>
-      <p class="card-sub">Your background and what makes your perspective unique.</p>
+        <!-- Tab: Profile -->
+        <div class="tab-content active" id="tab-profile">
+          <div class="field">
+            <div class="field-label">Bio</div>
+            <div class="field-hint">Who are you? What do you do? (2-3 sentences)</div>
+            <textarea class="field-input" name="bio" rows="3" placeholder="e.g. Angel investor who's backed 12 AI startups. Former CTO turned operator. Built and sold an EDI company." oninput="updatePreview()">{{ profile.bio or '' }}</textarea>
+          </div>
 
-      <div class="form-group">
-        <label class="form-label">Bio</label>
-        <div class="form-hint">Who are you? What do you do? What's your background? (2-3 sentences)</div>
-        <textarea name="bio" rows="3" placeholder="e.g. Angel investor who's backed 12 AI startups. Former CTO turned operator. Built and sold an EDI company. Now building tools with Claude Code and sharing what I learn.">{{ profile.bio or '' }}</textarea>
-      </div>
+          <div class="field">
+            <div class="field-label">Expertise</div>
+            <div class="field-hint">Topics you have authority on. Be specific.</div>
+            <textarea class="field-input" name="expertise" rows="3" placeholder="e.g. AI agent architecture, angel investing (pre-seed/seed), no-code SaaS, Claude Code workflows" oninput="updatePreview()">{{ profile.expertise or '' }}</textarea>
+          </div>
 
-      <div class="form-group">
-        <label class="form-label">Expertise</label>
-        <div class="form-hint">What topics do you actually have authority on? Be specific.</div>
-        <textarea name="expertise" rows="3" placeholder="e.g. AI agent architecture, angel investing (pre-seed/seed), no-code SaaS building, Claude Code workflows, EDI/supply chain tech, startup validation">{{ profile.expertise or '' }}</textarea>
-      </div>
+          <div class="field">
+            <div class="field-label">Current Focus</div>
+            <div class="field-hint">What you're working on RIGHT NOW. Update regularly.</div>
+            <textarea class="field-input" name="current_focus" rows="2" placeholder="e.g. Building a content platform with Claude Code. Evaluating 3 AI agent startups." oninput="updatePreview()">{{ profile.current_focus or '' }}</textarea>
+          </div>
+        </div>
 
-      <div class="form-group">
-        <label class="form-label">Current Focus</label>
-        <div class="form-hint">What are you working on RIGHT NOW? Update this regularly.</div>
-        <textarea name="current_focus" rows="2" placeholder="e.g. Building a content management platform with Claude Code. Evaluating 3 AI agent startups for investment. Writing about the shift from vibe coding to production AI.">{{ profile.current_focus or '' }}</textarea>
-      </div>
-    </div>
+        <!-- Tab: Voice -->
+        <div class="tab-content" id="tab-voice">
+          <div class="tip-box">
+            <strong>Tip:</strong> Paste your best posts below, separated by <code>---</code> on its own line. Pick posts that capture your authentic voice.
+          </div>
 
-    <div class="card">
-      <h2>Your Voice</h2>
-      <p class="card-sub">Paste 3-5 posts that sound most like YOU. The AI will match this style.</p>
-
-      <div class="example-note">
-        <strong>Tip:</strong> Paste your best posts below, separated by a line with just <code>---</code> between them. Pick posts where you think "this sounds exactly like me".
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Voice Examples</label>
-        <div class="form-hint">Paste 3-5 of your best posts. Separate each with --- on its own line.</div>
-        <textarea name="voice_examples" rows="10" placeholder="I just passed on a deal everyone else loved.
+          <div class="field">
+            <div class="field-label">Voice Examples</div>
+            <div class="field-hint">3-5 of your best posts. Separate each with --- on its own line.</div>
+            <textarea class="field-input" name="voice_examples" rows="12" placeholder="I just passed on a deal everyone else loved.
 
 The founder had great traction but couldn't explain why customers were churning. That's not a growth problem. That's a product problem wearing a growth costume.
 
@@ -163,40 +221,130 @@ The founder had great traction but couldn't explain why customers were churning.
 
 Hot take: Claude Code > Cursor for serious projects.
 
-Not because it's smarter. Because it forces you to think about repo structure first. And that's the actual skill.
+Not because it's smarter. Because it forces you to think about repo structure first.
 
 ---
 
-(paste more examples here)">{% if profile.voice_examples %}{% for ex in profile.voice_examples %}{{ ex }}{% if not loop.last %}
+(paste more examples here)" oninput="updatePreview()">{% if profile.voice_examples %}{% for ex in profile.voice_examples %}{{ ex }}{% if not loop.last %}
 ---
 {% endif %}{% endfor %}{% endif %}</textarea>
+          </div>
+        </div>
+
+        <!-- Tab: Opinions -->
+        <div class="tab-content" id="tab-opinions">
+          <div class="field">
+            <div class="field-label">Strong Opinions & Takes</div>
+            <div class="field-hint">Positions you hold that not everyone agrees with.</div>
+            <textarea class="field-input" name="opinions" rows="5" placeholder="e.g. No-code will replace 80% of custom development within 3 years. Most AI startups are features, not companies." oninput="updatePreview()">{{ profile.opinions or '' }}</textarea>
+          </div>
+
+          <div class="field">
+            <div class="field-label">Things to NEVER Say</div>
+            <div class="field-hint">Words, phrases, or styles that don't sound like you.</div>
+            <textarea class="field-input" name="donts" rows="4" placeholder="e.g. Never say 'game-changer', 'disrupt', 'synergy'. Don't use corporate speak. No humble-bragging." oninput="updatePreview()">{{ profile.donts or '' }}</textarea>
+          </div>
+        </div>
+
+        <div class="save-bar">
+          <a href="/" class="btn btn-secondary">Cancel</a>
+          <button type="submit" class="btn btn-primary">Save Voice Profile</button>
+        </div>
+      </div>
+
+      <!-- Right: Preview card -->
+      <div class="preview-card">
+        <div class="preview-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          Profile Preview
+        </div>
+
+        <div class="preview-section">
+          <div class="preview-label">Bio</div>
+          <div class="preview-value {% if not profile.bio %}empty{% endif %}" id="prevBio">{{ profile.bio[:150] if profile.bio else 'Not set yet' }}{% if profile.bio and profile.bio|length > 150 %}...{% endif %}</div>
+        </div>
+
+        <div class="preview-section">
+          <div class="preview-label">Expertise</div>
+          <div id="prevExpertise">
+            {% if profile.expertise %}
+            <div class="preview-tags">
+              {% for tag in profile.expertise.split(',')[:6] %}
+              <span class="preview-tag">{{ tag.strip() }}</span>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="preview-value empty">Not set yet</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="preview-section">
+          <div class="preview-label">Current Focus</div>
+          <div class="preview-value {% if not profile.current_focus %}empty{% endif %}" id="prevFocus">{{ profile.current_focus[:100] if profile.current_focus else 'Not set yet' }}{% if profile.current_focus and profile.current_focus|length > 100 %}...{% endif %}</div>
+        </div>
+
+        <div class="preview-divider"></div>
+
+        <div class="preview-stat">
+          <span>Voice examples</span>
+          <span class="preview-stat-val {% if profile.voice_examples and profile.voice_examples|length >= 3 %}good{% elif profile.voice_examples %}warn{% else %}empty{% endif %}">
+            {{ profile.voice_examples|length if profile.voice_examples else 0 }} / 5
+          </span>
+        </div>
+        <div class="preview-stat">
+          <span>Opinions</span>
+          <span class="preview-stat-val {% if profile.opinions %}good{% else %}empty{% endif %}">
+            {% if profile.opinions %}Set{% else %}Not set{% endif %}
+          </span>
+        </div>
+        <div class="preview-stat">
+          <span>Don'ts</span>
+          <span class="preview-stat-val {% if profile.donts %}good{% else %}empty{% endif %}">
+            {% if profile.donts %}Set{% else %}Not set{% endif %}
+          </span>
+        </div>
+
+        <div class="preview-divider"></div>
+
+        <div style="font-size:11px; color:#aaa; line-height:1.5;">
+          {% if profile.bio and profile.voice_examples and profile.voice_examples|length >= 3 %}
+            Your profile is well-configured. AI content will closely match your voice.
+          {% elif profile.bio %}
+            Add more voice examples for better results.
+          {% else %}
+            Fill in your profile to get personalized AI content.
+          {% endif %}
+        </div>
       </div>
     </div>
-
-    <div class="card">
-      <h2>Your Opinions</h2>
-      <p class="card-sub">What do you actually believe? Strong takes make great content.</p>
-
-      <div class="form-group">
-        <label class="form-label">Strong Opinions & Takes</label>
-        <div class="form-hint">What positions do you hold that not everyone agrees with?</div>
-        <textarea name="opinions" rows="4" placeholder="e.g. No-code will replace 80% of custom development within 3 years. Most AI startups are features, not companies. The best founders I've backed were operators first, not engineers.">{{ profile.opinions or '' }}</textarea>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Things to NEVER Say</label>
-        <div class="form-hint">Words, phrases, or styles that don't sound like you.</div>
-        <textarea name="donts" rows="3" placeholder="e.g. Never say 'game-changer', 'disrupt', 'synergy'. Don't use corporate speak. Don't start posts with emojis. No humble-bragging.">{{ profile.donts or '' }}</textarea>
-      </div>
-    </div>
-
-    <div style="display:flex; gap:10px; justify-content:flex-end; margin-bottom:32px;">
-      <a href="/" class="btn btn-secondary">Cancel</a>
-      <button type="submit" class="btn btn-primary">Save Voice Profile</button>
-    </div>
-
   </form>
 
 </div>
+
+<script>
+function switchTab(btn, tabId) {
+  document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('tab-' + tabId).classList.add('active');
+}
+
+function updatePreview() {
+  var bio = document.querySelector('textarea[name="bio"]').value;
+  var prevBio = document.getElementById('prevBio');
+  if (prevBio) {
+    prevBio.textContent = bio ? bio.substring(0, 150) + (bio.length > 150 ? '...' : '') : 'Not set yet';
+    prevBio.className = 'preview-value' + (bio ? '' : ' empty');
+  }
+
+  var focus = document.querySelector('textarea[name="current_focus"]').value;
+  var prevFocus = document.getElementById('prevFocus');
+  if (prevFocus) {
+    prevFocus.textContent = focus ? focus.substring(0, 100) + (focus.length > 100 ? '...' : '') : 'Not set yet';
+    prevFocus.className = 'preview-value' + (focus ? '' : ' empty');
+  }
+}
+</script>
 </body>
 </html>

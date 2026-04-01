@@ -20,9 +20,13 @@
     .sidebar-link svg { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.5; }
     .sidebar-link.active svg { opacity: 1; }
     .sidebar-spacer { flex: 1; }
-    .sidebar-user { padding: 12px 20px; border-top: 1px solid #f0f0f0; }
-    .sidebar-username { font-size: 13px; font-weight: 600; color: #333; }
-    .sidebar-signout { font-size: 12px; color: #e0245e; text-decoration: none; margin-top: 4px; display: inline-block; }
+    .sidebar-user { padding: 14px 20px; border-top: 1px solid #f0f0f0; }
+    .sidebar-user-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .sidebar-avatar { width: 32px; height: 32px; background: #7c3aed; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+    .sidebar-user-info { min-width: 0; }
+    .sidebar-username { font-size: 13px; font-weight: 600; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sidebar-handle { font-size: 11px; color: #999; }
+    .sidebar-signout { font-size: 11px; color: #e0245e; text-decoration: none; display: inline-block; margin-left: 42px; }
     .sidebar-signout:hover { text-decoration: underline; }
 
     /* Main content */
@@ -164,7 +168,13 @@
     Settings
   </a>
   <div class="sidebar-user">
-    <div class="sidebar-username">@{{ username }}</div>
+    <div class="sidebar-user-row">
+      <div class="sidebar-avatar">{{ username[0].upper() if username else '?' }}</div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-username">{{ username }}</div>
+        <div class="sidebar-handle">@{{ username }}</div>
+      </div>
+    </div>
     <a href="/logout" class="sidebar-signout">Sign out</a>
   </div>
 </aside>
