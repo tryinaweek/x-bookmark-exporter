@@ -558,29 +558,65 @@ LINKEDIN_VOICE_RULES = """LINKEDIN WRITING RULES (non-negotiable):
 
 
 def _gather_linkedin_context(db_uid):
-    """Build a rich context blob from all user data sources for LinkedIn prompts."""
+    """Build a rich context blob from all user data sources for LinkedIn prompts.
+
+    Pulls from: voice profile, bookmark analysis, tweet analysis.
+    Structured so the AI can see what the user reads, what they've said,
+    and what resonates with their audience.
+    """
     voice = get_voice_context(db_uid) if db_uid else PROFILE_CONTEXT
-    parts = [voice]
+    parts = [f"=== VOICE PROFILE ===\n{voice}"]
 
     bookmark_analysis = _safe_db(db_load_analysis, db_uid, "bookmarks")
     if bookmark_analysis:
+        bm_parts = []
         cats = bookmark_analysis.get("categories", [])
         if cats:
-            parts.append(f"Current reading interests: {', '.join(c['name'] for c in cats[:6])}")
+            bm_parts.append(f"Reading categories: {', '.join(c['name'] for c in cats[:8])}")
+        summary = bookmark_analysis.get("summary")
+        if summary:
+            bm_parts.append(f"Reading summary: {summary}")
         gems = bookmark_analysis.get("gems", [])
         if gems:
-            parts.append(f"Interesting bookmarks: {'; '.join(g.get('title','') for g in gems[:3])}")
+            bm_parts.append("Notable bookmarks: " + "; ".join(
+                f"{g.get('title','')} — {g.get('reason','')}" for g in gems[:5]
+            ))
+        actions = bookmark_analysis.get("actions", [])
+        if actions:
+            action_texts = []
+            for a in actions[:3]:
+                action_texts.append(a.get("text", a) if isinstance(a, dict) else str(a))
+            bm_parts.append("Bookmark-based actions: " + "; ".join(action_texts))
+        if bm_parts:
+            parts.append("=== BOOKMARK BEHAVIOR ===\n" + "\n".join(bm_parts))
 
     tweet_analysis = _safe_db(db_load_analysis, db_uid, "tweets")
     if tweet_analysis:
+        tw_parts = []
+        summary = tweet_analysis.get("summary")
+        if summary:
+            tw_parts.append(f"Performance summary: {summary}")
         strategy = tweet_analysis.get("strategy", {})
         if strategy.get("best_topics"):
-            parts.append(f"Proven audience topics: {', '.join(strategy['best_topics'])}")
+            tw_parts.append(f"Best-performing topics: {', '.join(strategy['best_topics'])}")
+        if strategy.get("avoid_topics"):
+            tw_parts.append(f"Underperforming topics: {', '.join(strategy['avoid_topics'])}")
+        if strategy.get("posting_advice"):
+            tw_parts.append(f"Posting insight: {strategy['posting_advice']}")
         top = tweet_analysis.get("top_performers", [])
         if top:
-            parts.append(f"Top performing content: {'; '.join(t.get('title','') for t in top[:3])}")
+            tw_parts.append("Top performers: " + "; ".join(
+                f"{t.get('title','')} — {t.get('why','')}" for t in top[:4]
+            ))
+        patterns = tweet_analysis.get("patterns", [])
+        if patterns:
+            tw_parts.append("Patterns: " + "; ".join(
+                f"{p.get('pattern','')} ({p.get('recommendation','')})" for p in patterns[:3]
+            ))
+        if tw_parts:
+            parts.append("=== CONTENT PERFORMANCE ===\n" + "\n".join(tw_parts))
 
-    return "\n".join(parts)
+    return "\n\n".join(parts)
 
 
 def generate_linkedin_ideas(username, db_uid, seed_topic=None):
@@ -600,25 +636,45 @@ The user provided a seed topic: "{seed_topic}"
 Generate ideas that explore DIFFERENT angles on this topic — not 8 versions of the same take.
 Each idea should find a distinct entry point into the subject."""
 
-    prompt = f"""You are a LinkedIn content strategist for {username}.
+    prompt = f"""You are the LinkedIn Ideas Engine inside MyBookmarks.
 
-=== USER CONTEXT ===
+Your job is to generate exactly 8 strong LinkedIn post ideas for this specific user.
+
+These are not final posts.
+These are not generic content prompts.
+These are angle-first, proof-aware ideas for a founder/operator voice.
+
+=== USER: {username} ===
 {context}
 {topic_clause}
 
-=== TASK ===
-Generate exactly 8 LinkedIn post ideas. These are NOT tweets. They are LinkedIn-native angles
-designed for the LinkedIn feed algorithm and a professional audience.
+You must use:
+- the user's current topic if provided
+- the user's bookmark behavior and reading patterns (provided above in context)
+- the user's past content performance patterns (provided above in context)
+- the user's voice profile, expertise, current focus, strong opinions, and writing examples (provided above in context)
 
-=== QUALITY BAR ===
-Each idea must meet ALL of these:
-1. ANGLE-FIRST: Lead with the surprising or contrarian framing, not a broad topic.
-2. CLAIM-SPECIFIC: State the core claim in one falsifiable sentence. If you can't, the idea is too vague — make it narrower.
-3. PROOF-GROUNDED: Point to a specific experience, project, number, or decision from the user's context that could back this up. If evidence is weak, make the idea more observational and narrower.
-4. CREDIBLE AUTHORITY: The user is a founder/operator. Prefer practical authority (I built/shipped/invested in X) over broad commentary (the industry is changing).
-5. DISCUSSION-WORTHY: The claim should split the room — reasonable people could disagree.
+Your goal is to find ideas at the intersection of:
+1. what this user actually pays attention to
+2. what this user can credibly say
+3. what tends to work in their content
+4. what makes a good LinkedIn post
 
-=== POST TYPES (use exactly these values) ===
+A strong idea is:
+- specific
+- arguable
+- grounded in proof, observation, or lived work
+- useful for a founder/operator audience
+- good raw material for a LinkedIn post
+
+A weak idea is:
+- broad
+- generic
+- inspirational
+- something anyone could say
+- disconnected from the user's authority
+
+Choose exactly one post_type for each idea from:
 - contrarian_lesson: Challenges a popular belief with proof from experience
 - founder_story: A specific moment, decision, or failure that taught something non-obvious
 - operator_framework: A reusable process or mental model extracted from doing the work
@@ -627,11 +683,9 @@ Each idea must meet ALL of these:
 - pattern_recognition: A connection between 2-3 things that reveals a larger trend
 - build_in_public_update: What happened this week/month with a real project — the messy truth
 
-=== MIX ===
 Across the 8 ideas, use at least 5 different post_type values. No more than 2 of the same type.
 
-=== OUTPUT FORMAT ===
-Return ONLY valid JSON:
+Return valid JSON only in this shape:
 {{"ideas":[{{
   "title":"5-12 word working title",
   "angle":"One sentence: the specific framing that makes this interesting",
@@ -642,12 +696,17 @@ Return ONLY valid JSON:
   "recommended_hook":"The literal opening line of the post — bold, specific, scroll-stopping"
 }}]}}
 
-=== ANTI-PATTERNS (reject any idea that does this) ===
-- Generic advice anyone could give ("focus on value", "be authentic")
-- Topic-only ideas without a specific angle ("AI in 2026")
-- Motivational framing ("Here's what I learned about resilience")
-- Ideas that require expertise the user doesn't have
-- Broad commentary without a personal stake"""
+Rules:
+- Return exactly 8 ideas.
+- Each idea must feel meaningfully different.
+- Prefer claims over subjects.
+- Prefer proof-backed observations over abstract advice.
+- Do not write full posts.
+- Do not include hashtags or emojis.
+- Keep title and recommended_hook concise.
+- If a topic is too broad, sharpen it.
+- If proof is weak, narrow the claim.
+- The output must sound like it belongs to one specific founder/operator, not a generic creator."""
 
     try:
         result, _ = _call_claude(prompt, max_tokens=3072)
