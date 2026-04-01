@@ -6,119 +6,165 @@
   <title>Dashboard - MyBookmarks</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f5f5; color: #1a1a1a; min-height: 100vh; }
-    nav { background: #fff; border-bottom: 1px solid #f0f0f0; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; }
-    .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #1a1a1a; }
-    .nav-brand svg { width: 22px; height: 22px; }
-    .nav-brand span { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
-    .nav-right { display: flex; align-items: center; gap: 16px; }
-    .nav-link { font-size: 14px; font-weight: 500; color: #888; text-decoration: none; }
-    .nav-link:hover { color: #333; }
-    .nav-link.active { color: #7c3aed; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f8f8f8; color: #1a1a1a; min-height: 100vh; display: flex; }
 
-    .container { max-width: 960px; margin: 32px auto; padding: 0 24px; }
-    .page-title { font-size: 24px; font-weight: 700; margin-bottom: 24px; }
+    /* Sidebar */
+    .sidebar { width: 220px; background: #fff; border-right: 1px solid #eee; padding: 20px 0; position: fixed; top: 0; left: 0; bottom: 0; display: flex; flex-direction: column; }
+    .sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 0 20px; margin-bottom: 28px; text-decoration: none; color: #1a1a1a; }
+    .sidebar-brand svg { width: 22px; height: 22px; flex-shrink: 0; }
+    .sidebar-brand span { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
+    .sidebar-section { font-size: 10px; font-weight: 600; color: #bbb; text-transform: uppercase; letter-spacing: 1px; padding: 0 20px; margin: 20px 0 8px; }
+    .sidebar-link { display: flex; align-items: center; gap: 10px; padding: 8px 20px; font-size: 14px; font-weight: 500; color: #666; text-decoration: none; transition: all 0.1s; border-left: 3px solid transparent; }
+    .sidebar-link:hover { color: #1a1a1a; background: #f8f8f8; }
+    .sidebar-link.active { color: #7c3aed; background: #faf5ff; border-left-color: #7c3aed; font-weight: 600; }
+    .sidebar-link svg { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.5; }
+    .sidebar-link.active svg { opacity: 1; }
+    .sidebar-spacer { flex: 1; }
+    .sidebar-user { padding: 12px 20px; border-top: 1px solid #f0f0f0; }
+    .sidebar-username { font-size: 13px; font-weight: 600; color: #333; }
+    .sidebar-signout { font-size: 12px; color: #e0245e; text-decoration: none; margin-top: 4px; display: inline-block; }
+    .sidebar-signout:hover { text-decoration: underline; }
 
-    .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
-    .card h2 { font-size: 15px; font-weight: 600; color: #444; margin-bottom: 16px; }
-    .card h3 { font-size: 14px; font-weight: 600; color: #333; margin-bottom: 10px; }
+    /* Main content */
+    .main { margin-left: 220px; flex: 1; padding: 28px 32px; max-width: 820px; }
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; padding: 20px 16px; }
+    }
 
-    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; text-decoration: none; transition: all 0.15s; }
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .page-title { font-size: 22px; font-weight: 700; }
+    .page-sub { font-size: 13px; color: #aaa; }
+
+    /* Stat cards */
+    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
+    @media (max-width: 640px) { .stat-grid { grid-template-columns: 1fr; } }
+    .stat-card { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 16px 18px; text-decoration: none; color: inherit; transition: border-color 0.15s; }
+    .stat-card:hover { border-color: #ccc; }
+    .stat-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .stat-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .stat-icon-bm { background: #ede9fe; color: #7c3aed; }
+    .stat-icon-tw { background: #e0f2fe; color: #0ea5e9; }
+    .stat-icon-dr { background: #fef3c7; color: #d97706; }
+    .stat-icon svg { width: 16px; height: 16px; }
+    .stat-badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; background: #f0f0f0; color: #888; }
+    .stat-badge-ok { background: #f0fdf4; color: #166534; }
+    .stat-value { font-size: 26px; font-weight: 800; color: #1a1a1a; line-height: 1; }
+    .stat-label { font-size: 12px; color: #999; margin-top: 2px; }
+    .stat-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px solid #f5f5f5; }
+    .stat-meta { font-size: 11px; color: #bbb; }
+    .stat-link { font-size: 12px; color: #7c3aed; font-weight: 600; text-decoration: none; }
+
+    /* Sync bar */
+    .sync-bar { display: flex; align-items: center; justify-content: space-between; background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; }
+    .sync-info { font-size: 12px; color: #999; }
+    .sync-info strong { color: #555; }
+    .sync-confirm { display: none; align-items: center; gap: 8px; font-size: 12px; color: #854d0e; }
+    .sync-confirm.show { display: flex; }
+
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; text-decoration: none; transition: all 0.15s; }
     .btn:hover { opacity: 0.88; }
     .btn-ai { background: #7c3aed; color: #fff; }
     .btn-blue { background: #1D9BF0; color: #fff; }
-    .btn-success { background: #00ba7c; color: #fff; }
-    .btn-secondary { background: #f5f5f5; color: #333; border: 1px solid #e5e5e5; }
-    .btn-danger { background: #fff; color: #e0245e; border: 1px solid #e5e5e5; }
-    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .btn-secondary { background: #f5f5f5; color: #555; border: 1px solid #e5e5e5; }
 
-    .error { background: #fff0f0; border: 1px solid #ffc0c0; border-radius: 8px; padding: 12px 16px; color: #c0392b; font-size: 13px; margin-bottom: 16px; }
-    .success-msg { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; color: #166534; font-size: 13px; margin-bottom: 16px; }
+    /* Cards */
+    .card { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 18px; margin-bottom: 20px; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .card-title { font-size: 14px; font-weight: 600; color: #333; }
 
-    /* Overview grid */
-    .overview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
-    @media (max-width: 640px) { .overview-grid { grid-template-columns: 1fr; } }
-    .overview-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 20px; text-decoration: none; color: inherit; transition: border-color 0.15s, box-shadow 0.15s; }
-    .overview-card:hover { border-color: #7c3aed; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-    .overview-icon { font-size: 24px; margin-bottom: 12px; }
-    .overview-value { font-size: 28px; font-weight: 800; color: #1a1a1a; }
-    .overview-label { font-size: 13px; color: #888; margin-top: 2px; }
-    .overview-meta { font-size: 11px; color: #bbb; margin-top: 8px; }
-    .overview-link { font-size: 12px; color: #7c3aed; font-weight: 600; margin-top: 8px; display: inline-block; }
-
-    /* Sync bar */
-    .sync-bar { display: flex; align-items: center; justify-content: space-between; background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; }
-    .sync-info { font-size: 13px; color: #888; }
-    .sync-info strong { color: #1a1a1a; }
-    .sync-confirm { display: none; align-items: center; gap: 10px; font-size: 13px; color: #854d0e; }
-    .sync-confirm.show { display: flex; }
-
-    /* Suggestions */
-    .suggestion-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .suggestion-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     @media (max-width: 600px) { .suggestion-grid { grid-template-columns: 1fr; } }
-    .suggestion-card { border: 1px solid #f0f0f0; border-radius: 10px; padding: 14px; transition: border-color 0.15s; }
+    .suggestion-card { border: 1px solid #f0f0f0; border-radius: 8px; padding: 12px; transition: border-color 0.15s; }
     .suggestion-card:hover { border-color: #7c3aed; }
-    .suggestion-topic { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
-    .suggestion-hook { font-size: 12px; color: #666; line-height: 1.4; margin-bottom: 8px; font-style: italic; }
+    .suggestion-topic { font-weight: 600; font-size: 13px; margin-bottom: 4px; color: #1a1a1a; }
+    .suggestion-hook { font-size: 12px; color: #888; line-height: 1.4; margin-bottom: 8px; font-style: italic; }
     .suggestion-meta { display: flex; justify-content: space-between; align-items: center; }
     .badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
-    .badge-tweet { background: #e8f4fd; color: #1D9BF0; }
-    .badge-thread { background: #f3edff; color: #7c3aed; }
+    .badge-tweet { background: #e0f2fe; color: #0ea5e9; }
+    .badge-thread { background: #ede9fe; color: #7c3aed; }
 
-    /* Drafts */
-    .draft-item { border: 1px solid #f0f0f0; border-radius: 10px; padding: 14px; margin-bottom: 10px; }
+    .draft-item { border: 1px solid #f0f0f0; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
     .draft-item:last-child { margin-bottom: 0; }
-    .draft-meta { font-size: 12px; color: #aaa; margin-bottom: 6px; }
-    .draft-text { font-size: 13px; line-height: 1.5; color: #333; margin-bottom: 10px; white-space: pre-wrap; }
-    .draft-actions { display: flex; gap: 8px; }
+    .draft-meta { font-size: 11px; color: #bbb; margin-bottom: 4px; }
+    .draft-text { font-size: 13px; line-height: 1.4; color: #444; margin-bottom: 8px; white-space: pre-wrap; }
+    .draft-actions { display: flex; gap: 6px; }
 
-    .loading-overlay {
-      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(255,255,255,0.92); z-index: 1000;
-      flex-direction: column; align-items: center; justify-content: center;
-    }
+    .error { background: #fff0f0; border: 1px solid #ffc0c0; border-radius: 8px; padding: 10px 14px; color: #c0392b; font-size: 12px; margin-bottom: 14px; }
+    .success-msg { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 14px; color: #166534; font-size: 12px; margin-bottom: 14px; }
+
+    .loading-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.92); z-index: 1000; flex-direction: column; align-items: center; justify-content: center; }
     .loading-overlay.show { display: flex; }
-    .loading-spinner {
-      width: 40px; height: 40px; border: 4px solid #f0f0f0;
-      border-top: 4px solid #7c3aed; border-radius: 50%;
-      animation: spin 0.8s linear infinite; margin-bottom: 16px;
-    }
+    .loading-spinner { width: 36px; height: 36px; border: 3px solid #f0f0f0; border-top: 3px solid #7c3aed; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 14px; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { font-size: 16px; font-weight: 600; color: #333; }
-    .loading-sub { font-size: 13px; color: #888; margin-top: 6px; }
+    .loading-text { font-size: 15px; font-weight: 600; color: #333; }
+    .loading-sub { font-size: 12px; color: #999; margin-top: 4px; }
+
+    .empty-note { font-size: 13px; color: #aaa; }
   </style>
 </head>
 <body>
 
-<nav>
-  <a href="/" class="nav-brand">
+<!-- Sidebar -->
+<aside class="sidebar">
+  <a href="/" class="sidebar-brand">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
       <path d="M12 7l1.5 3 3.5.5-2.5 2.5.5 3.5L12 15l-3 1.5.5-3.5L7 10.5l3.5-.5z" fill="#7c3aed" stroke="#7c3aed" stroke-width="1.5"/>
     </svg>
     <span>MyBookmarks</span>
   </a>
-  <div class="nav-right">
-    <a href="/" class="nav-link active">Dashboard</a>
-    <a href="/bookmarks" class="nav-link">Bookmarks</a>
-    <a href="/tweets" class="nav-link">Tweets</a>
-    <a href="/compose" class="nav-link">Compose</a>
-    <a href="/calendar" class="nav-link">Calendar</a>
-    <a href="/drafts" class="nav-link">Drafts</a>
-    <a href="/settings" class="nav-link">Settings</a>
-    <span class="nav-link" style="color:#333; font-weight:600;">@{{ username }}</span>
-    <a href="/logout" class="nav-link" style="color:#e0245e;">Sign out</a>
+
+  <div class="sidebar-section">Overview</div>
+  <a href="/" class="sidebar-link active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    Dashboard
+  </a>
+  <a href="/bookmarks" class="sidebar-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+    Bookmarks
+  </a>
+  <a href="/tweets" class="sidebar-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    Tweets
+  </a>
+
+  <div class="sidebar-section">Create</div>
+  <a href="/compose" class="sidebar-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Compose
+  </a>
+  <a href="/calendar" class="sidebar-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Calendar
+  </a>
+  <a href="/drafts" class="sidebar-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+    Drafts
+  </a>
+
+  <div class="sidebar-spacer"></div>
+
+  <a href="/settings" class="sidebar-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    Settings
+  </a>
+
+  <div class="sidebar-user">
+    <div class="sidebar-username">@{{ username }}</div>
+    <a href="/logout" class="sidebar-signout">Sign out</a>
   </div>
-</nav>
+</aside>
 
 <!-- Loading overlay -->
 <div class="loading-overlay" id="loadingOverlay">
   <div class="loading-spinner"></div>
   <div class="loading-text">Syncing your data...</div>
-  <div class="loading-sub">Fetching bookmarks and tweets from X. This may take a moment.</div>
+  <div class="loading-sub">Fetching bookmarks and tweets from X.</div>
 </div>
 
-<div class="container">
+<!-- Main Content -->
+<div class="main">
 
   {% if session.get('sync_error') %}
   <div class="error">{{ session.pop('sync_error') }}</div>
@@ -127,61 +173,88 @@
   <div class="success-msg">{{ session.pop('sync_status') }}</div>
   {% endif %}
 
-  <h1 class="page-title">Welcome back, @{{ username }}</h1>
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Dashboard</h1>
+    </div>
+  </div>
 
-  <!-- Overview Cards -->
-  <div class="overview-grid">
-    <a href="/bookmarks" class="overview-card">
-      <div class="overview-icon">&#x1f516;</div>
-      <div class="overview-value">{{ bookmarks_count }}</div>
-      <div class="overview-label">Bookmarks</div>
-      {% if bookmarks_fetched %}
-      <div class="overview-meta">Synced: {{ bookmarks_fetched[:10] }}</div>
-      {% endif %}
-      <div class="overview-link">{% if bm_analysis %}View analysis{% else %}{% if bookmarks_count > 0 %}Analyze{% else %}Load bookmarks{% endif %}{% endif %} &rarr;</div>
+  <!-- Stat Cards -->
+  <div class="stat-grid">
+    <a href="/bookmarks" class="stat-card">
+      <div class="stat-top">
+        <div class="stat-icon stat-icon-bm">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        {% if bm_analysis %}<span class="stat-badge stat-badge-ok">Analyzed</span>{% endif %}
+      </div>
+      <div class="stat-value">{{ bookmarks_count }}</div>
+      <div class="stat-label">Bookmarks</div>
+      <div class="stat-footer">
+        <span class="stat-meta">{% if bookmarks_fetched %}Synced {{ bookmarks_fetched[:10] }}{% else %}Not synced{% endif %}</span>
+        <span class="stat-link">{% if bm_analysis %}View{% elif bookmarks_count > 0 %}Analyze{% else %}Load{% endif %} &rarr;</span>
+      </div>
     </a>
-    <a href="/tweets" class="overview-card">
-      <div class="overview-icon">&#x1f4ac;</div>
-      <div class="overview-value">{{ tweets_count }}</div>
-      <div class="overview-label">Tweets</div>
-      {% if tweets_fetched %}
-      <div class="overview-meta">Synced: {{ tweets_fetched[:10] }}</div>
-      {% endif %}
-      <div class="overview-link">{% if tw_analysis %}View analysis{% else %}{% if tweets_count > 0 %}Analyze{% else %}Load tweets{% endif %}{% endif %} &rarr;</div>
+    <a href="/tweets" class="stat-card">
+      <div class="stat-top">
+        <div class="stat-icon stat-icon-tw">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        {% if tw_analysis %}<span class="stat-badge stat-badge-ok">Analyzed</span>{% endif %}
+      </div>
+      <div class="stat-value">{{ tweets_count }}</div>
+      <div class="stat-label">Tweets</div>
+      <div class="stat-footer">
+        <span class="stat-meta">{% if tweets_fetched %}Synced {{ tweets_fetched[:10] }}{% else %}Not synced{% endif %}</span>
+        <span class="stat-link">{% if tw_analysis %}View{% elif tweets_count > 0 %}Analyze{% else %}Load{% endif %} &rarr;</span>
+      </div>
     </a>
-    <a href="/drafts" class="overview-card">
-      <div class="overview-icon">&#x270f;&#xfe0f;</div>
-      <div class="overview-value">{{ drafts|length }}</div>
-      <div class="overview-label">Saved Drafts</div>
-      <div class="overview-link">View all &rarr;</div>
+    <a href="/drafts" class="stat-card">
+      <div class="stat-top">
+        <div class="stat-icon stat-icon-dr">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+        </div>
+      </div>
+      <div class="stat-value">{{ drafts|length }}</div>
+      <div class="stat-label">Saved Drafts</div>
+      <div class="stat-footer">
+        <span class="stat-meta">&nbsp;</span>
+        <span class="stat-link">View all &rarr;</span>
+      </div>
     </a>
   </div>
 
   <!-- Sync Bar -->
   <div class="sync-bar" id="syncBar">
     <div class="sync-info">
-      <strong>Data Sync</strong> &mdash;
       {% if bookmarks_fetched or tweets_fetched %}
-        Last synced {{ (bookmarks_fetched or tweets_fetched)[:10] }}. Only fetches new data since last sync.
+        <strong>Last synced</strong> {{ (bookmarks_fetched or tweets_fetched)[:10] }} &middot; Delta sync only
       {% else %}
-        No data loaded yet. First sync will fetch all your bookmarks and tweets.
+        <strong>No data yet</strong> &middot; First sync loads all bookmarks and tweets
       {% endif %}
     </div>
     <div>
-      <button class="btn btn-secondary btn-sm" onclick="showConfirm()" id="syncBtn">Sync new data</button>
+      <button class="btn btn-secondary" onclick="showConfirm()" id="syncBtn">Sync new data</button>
       <div class="sync-confirm" id="syncConfirm">
-        <span>This calls the X API (uses credits). Continue?</span>
+        <span>Uses X API credits.</span>
         <form method="POST" action="/sync" style="display:inline">
-          <button type="submit" class="btn btn-blue btn-sm" onclick="showLoading()">Yes, sync</button>
+          <button type="submit" class="btn btn-blue" onclick="showLoading()">Yes, sync</button>
         </form>
-        <button class="btn btn-secondary btn-sm" onclick="hideConfirm()">Cancel</button>
+        <button class="btn btn-secondary" onclick="hideConfirm()">Cancel</button>
       </div>
     </div>
   </div>
 
-  <!-- Smart Content Ideas -->
+  <!-- Content Ideas -->
   <div class="card">
-    <h2>Content Ideas for You</h2>
+    <div class="card-header">
+      <span class="card-title">Content Ideas</span>
+      {% if suggestions %}
+      <form method="POST" action="/compose/suggestions" style="display:inline">
+        <button type="submit" class="btn btn-secondary" onclick="this.textContent='...'; this.style.opacity='0.6';">Refresh</button>
+      </form>
+      {% endif %}
+    </div>
     {% if suggestions %}
     <div class="suggestion-grid">
       {% for s in suggestions %}
@@ -190,49 +263,43 @@
         <div class="suggestion-hook">"{{ s.hook }}"</div>
         <div class="suggestion-meta">
           <span class="badge {% if s.format == 'thread' %}badge-thread{% else %}badge-tweet{% endif %}">{{ s.format }}</span>
-          <a href="/compose?idea={{ s.hook | urlencode }}&format={{ s.format }}" class="btn btn-sm btn-ai">Compose</a>
+          <a href="/compose?idea={{ s.hook | urlencode }}&format={{ s.format }}" class="btn btn-ai" style="padding:4px 10px; font-size:11px;">Compose</a>
         </div>
       </div>
       {% endfor %}
     </div>
-    <form method="POST" action="/compose/suggestions" style="margin-top: 14px;">
-      <button type="submit" class="btn btn-secondary btn-sm" onclick="this.textContent='Generating...'; this.style.opacity='0.6';">Refresh ideas</button>
-    </form>
     {% else %}
-    <p style="font-size: 14px; color: #888; margin-bottom: 14px;">
-      {% if bm_analysis or tw_analysis %}
-      Generate personalized content ideas based on your bookmark interests and tweet performance.
-      {% else %}
-      Sync your data first, then generate smart content ideas.
-      {% endif %}
+    <p class="empty-note">
+      {% if bm_analysis or tw_analysis %}Generate ideas from your bookmark interests and tweet patterns.{% else %}Sync your data first to get personalized ideas.{% endif %}
     </p>
-    <form method="POST" action="/compose/suggestions">
-      <button type="submit" class="btn btn-ai" onclick="this.textContent='Generating ideas...'; this.style.opacity='0.6';">Get content ideas</button>
+    {% if bm_analysis or tw_analysis %}
+    <form method="POST" action="/compose/suggestions" style="margin-top:10px;">
+      <button type="submit" class="btn btn-ai" onclick="this.textContent='Generating...'; this.style.opacity='0.6';">Get content ideas</button>
     </form>
+    {% endif %}
     {% endif %}
   </div>
 
   {% if drafts %}
-  <!-- Recent Drafts -->
   <div class="card">
-    <h2>Recent Drafts</h2>
+    <div class="card-header">
+      <span class="card-title">Recent Drafts</span>
+      <a href="/drafts" class="btn btn-secondary">View all</a>
+    </div>
     {% for draft in drafts[:3] %}
     <div class="draft-item">
       <div class="draft-meta">{{ draft.topic or 'Untitled' }} &middot; {{ draft.format }} &middot; {{ draft.created_at[:10] if draft.created_at else '' }}</div>
-      <div class="draft-text">{{ draft.tweets[0][:150] if draft.tweets else '' }}{% if draft.tweets and draft.tweets[0]|length > 150 %}...{% endif %}</div>
+      <div class="draft-text">{{ draft.tweets[0][:120] if draft.tweets else '' }}{% if draft.tweets and draft.tweets[0]|length > 120 %}...{% endif %}</div>
       <div class="draft-actions">
         <form method="POST" action="/compose/post" style="display:inline">
           <input type="hidden" name="tweets" value="{{ draft.tweets | tojson }}">
           <input type="hidden" name="draft_id" value="{{ draft.id }}">
-          <button type="submit" class="btn btn-sm btn-blue">Post to X</button>
+          <button type="submit" class="btn btn-blue">Post</button>
         </form>
-        <a href="/drafts" class="btn btn-sm btn-secondary">Edit</a>
+        <a href="/drafts" class="btn btn-secondary">Edit</a>
       </div>
     </div>
     {% endfor %}
-    {% if drafts|length > 3 %}
-    <a href="/drafts" style="font-size: 13px; color: #7c3aed; font-weight: 600;">View all {{ drafts|length }} drafts &rarr;</a>
-    {% endif %}
   </div>
   {% endif %}
 
