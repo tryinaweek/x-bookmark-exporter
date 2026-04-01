@@ -541,6 +541,149 @@ Under 280 chars. Strong hook. Engagement driver at end."""
         return [], None
 
 
+# -- LinkedIn pipeline (Ideas → Brief → Drafts) ---------------------------
+
+LINKEDIN_VOICE_RULES = """LINKEDIN WRITING RULES (non-negotiable):
+- Mobile-readable: one idea per line. Short paragraphs (1-2 sentences max).
+- Blank line between every thought. White space is your weapon.
+- NO hashtags unless the user explicitly asks.
+- NO generic motivational tone. NO "Here's what I learned". NO "Let that sink in."
+- Every sentence must contain a SPECIFIC detail: a name, a number, a date, a project, a dollar amount.
+- Structure is angle-first: lead with the surprising take, then prove it with your own experience.
+- Tone: operator sharing real experience. Conversational, not performative. Like texting a founder friend.
+- Hook: one bold sentence that challenges a common belief. Then blank line.
+- Body: 3-5 short paragraphs. Each paragraph = one proof point or insight.
+- Closer: one sharp line. A question or a reframe. Not a call-to-engage.
+- Length: 800-1500 characters. Tight but substantive."""
+
+
+def _gather_linkedin_context(db_uid):
+    """Build a rich context blob from all user data sources for LinkedIn prompts."""
+    voice = get_voice_context(db_uid) if db_uid else PROFILE_CONTEXT
+    parts = [voice]
+
+    bookmark_analysis = _safe_db(db_load_analysis, db_uid, "bookmarks")
+    if bookmark_analysis:
+        cats = bookmark_analysis.get("categories", [])
+        if cats:
+            parts.append(f"Current reading interests: {', '.join(c['name'] for c in cats[:6])}")
+        gems = bookmark_analysis.get("gems", [])
+        if gems:
+            parts.append(f"Interesting bookmarks: {'; '.join(g.get('title','') for g in gems[:3])}")
+
+    tweet_analysis = _safe_db(db_load_analysis, db_uid, "tweets")
+    if tweet_analysis:
+        strategy = tweet_analysis.get("strategy", {})
+        if strategy.get("best_topics"):
+            parts.append(f"Proven audience topics: {', '.join(strategy['best_topics'])}")
+        top = tweet_analysis.get("top_performers", [])
+        if top:
+            parts.append(f"Top performing content: {'; '.join(t.get('title','') for t in top[:3])}")
+
+    return "\n".join(parts)
+
+
+def generate_linkedin_ideas(username, db_uid):
+    """Step 1: Generate 8 LinkedIn-native content angles."""
+    if not CLAUDE_API_KEY:
+        return []
+    context = _gather_linkedin_context(db_uid)
+    prompt = f"""LinkedIn content strategist for {username}.
+
+{context}
+
+Generate 8 LinkedIn post angles. These are NOT tweet ideas — they are LinkedIn-native angles that work on LinkedIn's algorithm and audience.
+
+LinkedIn angles should be:
+- Contrarian or surprising (challenges a popular belief in their industry)
+- Experience-based (can only be written by someone who's actually done the thing)
+- Specific (references real projects, real numbers, real decisions)
+- Discussion-worthy (people will comment because they have an opinion)
+
+Mix of types:
+- 2 "hot take" angles (challenge conventional wisdom)
+- 2 "behind the scenes" angles (what really happened vs what people assume)
+- 2 "framework/playbook" angles (a reusable process from their experience)
+- 2 "story" angles (a specific moment/decision that taught them something)
+
+Return ONLY valid JSON:
+{{"ideas":[{{"topic":"5-10 word title","angle":"The specific contrarian/surprising angle in one sentence","type":"hot_take|behind_scenes|framework|story","proof_hint":"What personal experience backs this up"}}]}}"""
+
+    try:
+        result, _ = _call_claude(prompt, max_tokens=2048)
+        return result.get("ideas", []) if result else []
+    except Exception:
+        return []
+
+
+def generate_linkedin_brief(username, db_uid, topic, angle):
+    """Step 2: Turn a selected idea into a structured LinkedIn brief."""
+    if not CLAUDE_API_KEY:
+        return None
+    context = _gather_linkedin_context(db_uid)
+    prompt = f"""LinkedIn content brief writer for {username}.
+
+{context}
+
+The user selected this idea:
+Topic: {topic}
+Angle: {angle}
+
+Create a structured brief that a writer (or AI) can use to produce the final post. This brief should mine the user's profile, expertise, and experience for SPECIFIC proof points.
+
+Return ONLY valid JSON:
+{{"brief":{{
+  "hook":"The opening line — one bold, specific sentence",
+  "thesis":"The core argument in 1-2 sentences",
+  "proof_points":["3-4 specific proof points from their experience. Each must reference a real project, number, decision, or outcome."],
+  "insight":"The non-obvious takeaway. What does this mean for the reader?",
+  "closer":"One sharp closing line — a question or a reframe",
+  "tone_note":"Brief note on voice calibration for this specific post"
+}}}}"""
+
+    try:
+        result, _ = _call_claude(prompt, max_tokens=2048)
+        return result.get("brief") if result else None
+    except Exception:
+        return None
+
+
+def generate_linkedin_drafts(username, db_uid, brief):
+    """Step 3: Generate 3 LinkedIn post variants from a brief."""
+    if not CLAUDE_API_KEY:
+        return []
+    voice = get_voice_context(db_uid) if db_uid else PROFILE_CONTEXT
+    brief_text = json.dumps(brief, indent=2)
+    prompt = f"""LinkedIn ghostwriter for {username}.
+
+{voice}
+
+Write 3 DIFFERENT LinkedIn post variants from this brief:
+{brief_text}
+
+Each variant should take a different approach:
+- Variant A: "Straight shooter" — direct, punchy, no fluff. Shortest version.
+- Variant B: "Storyteller" — opens with a specific moment/scene, then builds to the insight.
+- Variant C: "Framework" — structured with a clear numbered framework or process.
+
+{LINKEDIN_VOICE_RULES}
+
+CRITICAL: Write in EXACTLY this person's voice. Use their real experience, real projects, real numbers. Not generic advice.
+
+Return ONLY valid JSON:
+{{"drafts":[
+  {{"style":"straight","post":"The full post text"}},
+  {{"style":"story","post":"The full post text"}},
+  {{"style":"framework","post":"The full post text"}}
+]}}"""
+
+    try:
+        result, _ = _call_claude(prompt, max_tokens=4096)
+        return result.get("drafts", []) if result else []
+    except Exception:
+        return []
+
+
 def build_excel(bookmarks):
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -836,20 +979,10 @@ def compose_generate():
         return redirect("/compose")
 
     db_uid = ensure_db_uid()
-    linkedin_post = None
-    if platform == "both":
-        result = generate_draft(session.get("username", ""), idea, format_type, platform="both", db_uid=db_uid)
-        drafts, _, linkedin_post = result if len(result) == 3 else (result[0], "both", "")
-    elif platform == "linkedin":
-        drafts, _ = generate_draft(session.get("username", ""), idea, format_type, platform="linkedin", db_uid=db_uid)
-        linkedin_post = drafts[0] if drafts else ""
-        drafts = []
-    else:
-        drafts, _ = generate_draft(session.get("username", ""), idea, format_type, platform="x", db_uid=db_uid)
+    drafts, _ = generate_draft(session.get("username", ""), idea, format_type, platform="x", db_uid=db_uid)
 
     return render_template("compose.html", connected=True, username=session.get("username", ""),
-                           drafts=drafts, linkedin_post=linkedin_post,
-                           idea=idea, format_type=format_type, platform=platform)
+                           drafts=drafts, idea=idea, format_type=format_type)
 
 
 @app.route("/compose/save", methods=["POST"])
@@ -945,6 +1078,99 @@ def compose_schedule():
         "topic": topic, "status": "scheduled", "scheduled_at": scheduled_at,
     })
     return redirect("/calendar")
+
+
+# -- LinkedIn routes -------------------------------------------------------
+
+@app.route("/linkedin")
+def linkedin_page():
+    if not session.get("access_token"):
+        return redirect("/")
+    db_uid = ensure_db_uid()
+    li_drafts = [d for d in (_safe_db(db_load_drafts, db_uid, "draft") or []) if d.get("format") == "linkedin"]
+    return render_template("linkedin.html", connected=True, username=session.get("username", ""),
+                           step="start", saved_drafts=li_drafts[:5])
+
+
+@app.route("/linkedin/ideas", methods=["POST"])
+def linkedin_ideas():
+    if not session.get("access_token"):
+        return redirect("/")
+    db_uid = ensure_db_uid()
+    ideas = generate_linkedin_ideas(session.get("username", ""), db_uid)
+    li_drafts = [d for d in (_safe_db(db_load_drafts, db_uid, "draft") or []) if d.get("format") == "linkedin"]
+    return render_template("linkedin.html", connected=True, username=session.get("username", ""),
+                           step="ideas", ideas=ideas, saved_drafts=li_drafts[:5])
+
+
+@app.route("/linkedin/brief", methods=["POST"])
+def linkedin_brief():
+    if not session.get("access_token"):
+        return redirect("/")
+    db_uid = ensure_db_uid()
+    topic = request.form.get("topic", "").strip()
+    angle = request.form.get("angle", "").strip()
+    custom_topic = request.form.get("custom_topic", "").strip()
+
+    if custom_topic:
+        topic = custom_topic
+        angle = custom_topic
+
+    if not topic:
+        return redirect("/linkedin")
+
+    brief = generate_linkedin_brief(session.get("username", ""), db_uid, topic, angle)
+    return render_template("linkedin.html", connected=True, username=session.get("username", ""),
+                           step="brief", brief=brief, topic=topic, angle=angle)
+
+
+@app.route("/linkedin/drafts", methods=["POST"])
+def linkedin_drafts():
+    if not session.get("access_token"):
+        return redirect("/")
+    db_uid = ensure_db_uid()
+    topic = request.form.get("topic", "")
+    brief_json = request.form.get("brief", "{}")
+    try:
+        brief = json.loads(brief_json)
+    except json.JSONDecodeError:
+        brief = {}
+
+    drafts = generate_linkedin_drafts(session.get("username", ""), db_uid, brief)
+    return render_template("linkedin.html", connected=True, username=session.get("username", ""),
+                           step="drafts", li_drafts=drafts, topic=topic, brief=brief)
+
+
+@app.route("/linkedin/save", methods=["POST"])
+def linkedin_save():
+    if not session.get("access_token"):
+        return redirect("/")
+    db_uid = ensure_db_uid()
+    post_text = request.form.get("post", "").strip()
+    topic = request.form.get("topic", "")
+    if post_text and db_uid:
+        db_save_draft(db_uid, [post_text], "linkedin", topic)
+    return redirect("/linkedin")
+
+
+@app.route("/linkedin/generate", methods=["POST"])
+def linkedin_generate_direct():
+    """Direct generation from custom topic — skip ideas, go straight to brief+drafts."""
+    if not session.get("access_token"):
+        return redirect("/")
+    db_uid = ensure_db_uid()
+    topic = request.form.get("topic", "").strip()
+    if not topic:
+        return redirect("/linkedin")
+
+    brief = generate_linkedin_brief(session.get("username", ""), db_uid, topic, topic)
+    if not brief:
+        return render_template("linkedin.html", connected=True, username=session.get("username", ""),
+                               step="start", error="Failed to generate brief. Try again.")
+
+    drafts = generate_linkedin_drafts(session.get("username", ""), db_uid, brief)
+    return render_template("linkedin.html", connected=True, username=session.get("username", ""),
+                           step="drafts", li_drafts=drafts, topic=topic, brief=brief)
 
 
 @app.route("/calendar")

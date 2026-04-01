@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LinkedIn - MyBookmarks</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f8f8f8; color: #1a1a1a; min-height: 100vh; display: flex; }
+
+    .sidebar { width: 220px; background: #fff; border-right: 1px solid #eee; padding: 20px 0; position: fixed; top: 0; left: 0; bottom: 0; display: flex; flex-direction: column; z-index: 10; }
+    .sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 0 20px; margin-bottom: 28px; text-decoration: none; color: #1a1a1a; }
+    .sidebar-brand svg { width: 22px; height: 22px; flex-shrink: 0; }
+    .sidebar-brand span { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
+    .sidebar-section { font-size: 10px; font-weight: 600; color: #bbb; text-transform: uppercase; letter-spacing: 1px; padding: 0 20px; margin: 20px 0 8px; }
+    .sidebar-link { display: flex; align-items: center; gap: 10px; padding: 8px 20px; font-size: 14px; font-weight: 500; color: #666; text-decoration: none; transition: all 0.1s; border-left: 3px solid transparent; }
+    .sidebar-link:hover { color: #1a1a1a; background: #f8f8f8; }
+    .sidebar-link.active { color: #7c3aed; background: #faf5ff; border-left-color: #7c3aed; font-weight: 600; }
+    .sidebar-link svg { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.5; }
+    .sidebar-link.active svg { opacity: 1; }
+    .sidebar-spacer { flex: 1; }
+    .sidebar-user { padding: 14px 20px; border-top: 1px solid #f0f0f0; }
+    .sidebar-user-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .sidebar-avatar { width: 32px; height: 32px; background: #7c3aed; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+    .sidebar-user-info { min-width: 0; }
+    .sidebar-username { font-size: 13px; font-weight: 600; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sidebar-handle { font-size: 11px; color: #999; }
+    .sidebar-signout { font-size: 11px; color: #e0245e; text-decoration: none; display: inline-block; margin-left: 42px; }
+    .sidebar-signout:hover { text-decoration: underline; }
+
+    .main { margin-left: 220px; flex: 1; padding: 28px 32px; }
+    @media (max-width: 768px) { .sidebar { display: none; } .main { margin-left: 0; padding: 20px 16px; } }
+
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .page-title { font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+    .li-icon { width: 22px; height: 22px; }
+
+    .card { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 18px; margin-bottom: 16px; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .card-title { font-size: 14px; font-weight: 600; color: #333; }
+    .card-sub { font-size: 12px; color: #aaa; }
+
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; text-decoration: none; transition: all 0.15s; }
+    .btn:hover { opacity: 0.88; }
+    .btn-li { background: #0A66C2; color: #fff; }
+    .btn-secondary { background: #f5f5f5; color: #555; border: 1px solid #e5e5e5; }
+    .btn-sm { padding: 5px 12px; font-size: 11px; }
+    .btn-lg { padding: 10px 20px; font-size: 14px; }
+
+    .error { background: #fff0f0; border: 1px solid #ffc0c0; border-radius: 8px; padding: 10px 14px; color: #c0392b; font-size: 12px; margin-bottom: 14px; }
+
+    /* Steps indicator */
+    .steps { display: flex; align-items: center; gap: 0; margin-bottom: 20px; }
+    .step { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #ccc; }
+    .step.active { color: #0A66C2; }
+    .step.done { color: #00ba7c; }
+    .step-num { width: 22px; height: 22px; border-radius: 50%; border: 2px solid currentColor; display: flex; align-items: center; justify-content: center; font-size: 11px; }
+    .step.active .step-num { background: #0A66C2; color: #fff; border-color: #0A66C2; }
+    .step.done .step-num { background: #00ba7c; color: #fff; border-color: #00ba7c; }
+    .step-arrow { color: #ddd; margin: 0 8px; font-size: 14px; }
+
+    /* Compose input */
+    .compose-input { width: 100%; border: 1px solid #e5e5e5; border-radius: 10px; padding: 14px 16px; font-size: 15px; font-family: inherit; resize: vertical; min-height: 80px; outline: none; transition: border 0.15s; line-height: 1.6; }
+    .compose-input:focus { border-color: #0A66C2; box-shadow: 0 0 0 3px rgba(10,102,194,0.08); }
+    .compose-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+
+    /* Idea cards */
+    .idea-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 700px) { .idea-grid { grid-template-columns: 1fr; } }
+    .idea-card { border: 1px solid #f0f0f0; border-radius: 8px; padding: 14px; cursor: pointer; transition: all 0.15s; }
+    .idea-card:hover { border-color: #0A66C2; background: #f7faff; }
+    .idea-type { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .idea-type-hot { color: #e0245e; }
+    .idea-type-bts { color: #d97706; }
+    .idea-type-fw { color: #0A66C2; }
+    .idea-type-story { color: #7c3aed; }
+    .idea-topic { font-weight: 600; font-size: 13px; color: #1a1a1a; margin-bottom: 4px; }
+    .idea-angle { font-size: 12px; color: #666; line-height: 1.4; margin-bottom: 6px; }
+    .idea-proof { font-size: 11px; color: #aaa; font-style: italic; }
+
+    /* Brief display */
+    .brief-section { margin-bottom: 14px; }
+    .brief-section:last-child { margin-bottom: 0; }
+    .brief-label { font-size: 10px; font-weight: 600; color: #0A66C2; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .brief-value { font-size: 13px; color: #333; line-height: 1.6; }
+    .brief-list { list-style: none; padding: 0; }
+    .brief-list li { font-size: 13px; color: #333; line-height: 1.6; padding: 4px 0; padding-left: 16px; position: relative; }
+    .brief-list li::before { content: ""; position: absolute; left: 0; top: 11px; width: 6px; height: 6px; border-radius: 50%; background: #0A66C2; }
+
+    /* Draft variants */
+    .draft-variant { border: 1px solid #eee; border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+    .draft-variant:last-child { margin-bottom: 0; }
+    .draft-variant-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .draft-variant-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .draft-variant-label.straight { color: #e0245e; }
+    .draft-variant-label.story { color: #7c3aed; }
+    .draft-variant-label.framework { color: #0A66C2; }
+    .draft-variant-desc { font-size: 10px; color: #999; }
+    .draft-text { width: 100%; border: 1px solid #f0f0f0; border-radius: 8px; padding: 12px; font-size: 13px; font-family: inherit; line-height: 1.7; resize: vertical; min-height: 150px; outline: none; background: #fafafa; }
+    .draft-text:focus { border-color: #0A66C2; background: #fff; }
+    .draft-actions { display: flex; gap: 6px; margin-top: 8px; justify-content: flex-end; }
+    .char-count { font-size: 10px; color: #bbb; text-align: right; margin-top: 4px; }
+
+    /* Saved drafts */
+    .saved-item { border: 1px solid #f0f0f0; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
+    .saved-item:last-child { margin-bottom: 0; }
+    .saved-meta { font-size: 11px; color: #aaa; margin-bottom: 4px; }
+    .saved-text { font-size: 12px; color: #333; line-height: 1.5; margin-bottom: 8px; white-space: pre-wrap; }
+
+    .loading-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.92); z-index: 1000; flex-direction: column; align-items: center; justify-content: center; }
+    .loading-overlay.show { display: flex; }
+    .loading-spinner { width: 36px; height: 36px; border: 3px solid #f0f0f0; border-top: 3px solid #0A66C2; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 14px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 15px; font-weight: 600; color: #333; }
+    .loading-sub { font-size: 12px; color: #999; margin-top: 4px; }
+  </style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <a href="/" class="sidebar-brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+      <path d="M12 7l1.5 3 3.5.5-2.5 2.5.5 3.5L12 15l-3 1.5.5-3.5L7 10.5l3.5-.5z" fill="#7c3aed" stroke="#7c3aed" stroke-width="1.5"/>
+    </svg>
+    <span>MyBookmarks</span>
+  </a>
+  <div class="sidebar-section">Overview</div>
+  <a href="/" class="sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> Dashboard</a>
+  <a href="/bookmarks" class="sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> Bookmarks</a>
+  <a href="/tweets" class="sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Tweets</a>
+  <div class="sidebar-section">Create</div>
+  <a href="/compose" class="sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Compose</a>
+  <a href="/linkedin" class="sidebar-link active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg> LinkedIn</a>
+  <a href="/calendar" class="sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Calendar</a>
+  <a href="/drafts" class="sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg> Drafts</a>
+  <div class="sidebar-spacer"></div>
+  <a href="/settings" class="sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Settings</a>
+  <div class="sidebar-user">
+    <div class="sidebar-user-row">
+      <div class="sidebar-avatar">{{ username[0].upper() if username else '?' }}</div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-username">{{ username }}</div>
+        <div class="sidebar-handle">@{{ username }}</div>
+      </div>
+    </div>
+    <a href="/logout" class="sidebar-signout">Sign out</a>
+  </div>
+</aside>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loadingMsg">Working on it...</div>
+  <div class="loading-sub">AI is thinking about LinkedIn angles.</div>
+</div>
+
+<div class="main">
+
+  {% if error %}
+  <div class="error">{{ error }}</div>
+  {% endif %}
+
+  <div class="page-header">
+    <h1 class="page-title">
+      <svg class="li-icon" viewBox="0 0 24 24" fill="#0A66C2"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+      LinkedIn
+    </h1>
+  </div>
+
+  <!-- Steps indicator -->
+  <div class="steps">
+    <div class="step {% if step == 'start' %}active{% elif step in ('ideas','brief','drafts') %}done{% endif %}">
+      <span class="step-num">1</span> Ideas
+    </div>
+    <span class="step-arrow">&rarr;</span>
+    <div class="step {% if step == 'brief' %}active{% elif step == 'drafts' %}done{% elif step == 'ideas' %}active{% else %}{% endif %}">
+      <span class="step-num">2</span> Brief
+    </div>
+    <span class="step-arrow">&rarr;</span>
+    <div class="step {% if step == 'drafts' %}active{% endif %}">
+      <span class="step-num">3</span> Drafts
+    </div>
+  </div>
+
+  <!-- ===== STEP: START (write your own + generate ideas) ===== -->
+  {% if step == 'start' %}
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Write about a topic</span>
+      <span class="card-sub">AI generates a brief + 3 post variants</span>
+    </div>
+    <form method="POST" action="/linkedin/generate">
+      <textarea class="compose-input" name="topic" rows="3" placeholder="e.g. Why I passed on a $2M ARR startup — and what the founder taught me about churn"></textarea>
+      <div class="compose-footer">
+        <span style="font-size:11px; color:#aaa;">Skips to brief + drafts directly</span>
+        <button type="submit" class="btn btn-li btn-lg" onclick="showLoading('Generating LinkedIn post...')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/></svg>
+          Generate
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div style="text-align:center; font-size:12px; color:#ccc; margin: 8px 0; font-weight:600;">OR</div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Get AI-generated angles</span>
+      <span class="card-sub">8 LinkedIn-native ideas based on your profile</span>
+    </div>
+    <form method="POST" action="/linkedin/ideas">
+      <button type="submit" class="btn btn-li" onclick="showLoading('Generating LinkedIn ideas...')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        Generate 8 Ideas
+      </button>
+    </form>
+  </div>
+  {% endif %}
+
+  <!-- ===== STEP: IDEAS (pick one) ===== -->
+  {% if step == 'ideas' and ideas %}
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Pick an angle</span>
+      <span class="card-sub">Click one to generate a structured brief</span>
+    </div>
+    <div class="idea-grid">
+      {% for idea in ideas %}
+      <form method="POST" action="/linkedin/brief" style="display:contents;">
+        <input type="hidden" name="topic" value="{{ idea.topic }}">
+        <input type="hidden" name="angle" value="{{ idea.angle }}">
+        <button type="submit" class="idea-card" style="text-align:left; background:none; font-family:inherit; cursor:pointer;" onclick="showLoading('Building brief...')">
+          <div class="idea-type {% if idea.type == 'hot_take' %}idea-type-hot{% elif idea.type == 'behind_scenes' %}idea-type-bts{% elif idea.type == 'framework' %}idea-type-fw{% else %}idea-type-story{% endif %}">{{ idea.type | replace('_', ' ') }}</div>
+          <div class="idea-topic">{{ idea.topic }}</div>
+          <div class="idea-angle">{{ idea.angle }}</div>
+          {% if idea.proof_hint %}<div class="idea-proof">{{ idea.proof_hint }}</div>{% endif %}
+        </button>
+      </form>
+      {% endfor %}
+    </div>
+    <div style="margin-top:12px;">
+      <a href="/linkedin" class="btn btn-sm btn-secondary">Start over</a>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ===== STEP: BRIEF (review + generate drafts) ===== -->
+  {% if step == 'brief' and brief %}
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Content Brief</span>
+      <span class="card-sub">{{ topic }}</span>
+    </div>
+
+    <div class="brief-section">
+      <div class="brief-label">Hook</div>
+      <div class="brief-value" style="font-weight:600; font-size:15px;">{{ brief.hook }}</div>
+    </div>
+
+    <div class="brief-section">
+      <div class="brief-label">Thesis</div>
+      <div class="brief-value">{{ brief.thesis }}</div>
+    </div>
+
+    <div class="brief-section">
+      <div class="brief-label">Proof Points</div>
+      <ul class="brief-list">
+        {% for point in brief.proof_points %}
+        <li>{{ point }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="brief-section">
+      <div class="brief-label">Insight</div>
+      <div class="brief-value">{{ brief.insight }}</div>
+    </div>
+
+    <div class="brief-section">
+      <div class="brief-label">Closer</div>
+      <div class="brief-value" style="font-style:italic;">{{ brief.closer }}</div>
+    </div>
+
+    {% if brief.tone_note %}
+    <div class="brief-section" style="margin-top:12px; padding-top:12px; border-top:1px solid #f0f0f0;">
+      <div class="brief-label">Tone</div>
+      <div class="brief-value" style="font-size:12px; color:#888;">{{ brief.tone_note }}</div>
+    </div>
+    {% endif %}
+
+    <div style="display:flex; gap:8px; margin-top:16px; padding-top:14px; border-top:1px solid #f0f0f0;">
+      <a href="/linkedin" class="btn btn-secondary">Start over</a>
+      <form method="POST" action="/linkedin/drafts" style="flex:1; text-align:right;">
+        <input type="hidden" name="topic" value="{{ topic }}">
+        <input type="hidden" name="brief" value="{{ brief | tojson }}">
+        <button type="submit" class="btn btn-li btn-lg" onclick="showLoading('Writing 3 variants...')">
+          Generate 3 Post Variants
+        </button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ===== STEP: DRAFTS (3 variants to choose from) ===== -->
+  {% if step == 'drafts' and li_drafts %}
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">3 Variants</span>
+      <span class="card-sub">Edit, copy, or save the one you like</span>
+    </div>
+
+    {% for draft in li_drafts %}
+    <div class="draft-variant">
+      <div class="draft-variant-header">
+        <div>
+          <span class="draft-variant-label {{ draft.style }}">
+            {% if draft.style == 'straight' %}Straight Shooter
+            {% elif draft.style == 'story' %}Storyteller
+            {% else %}Framework{% endif %}
+          </span>
+          <span class="draft-variant-desc">
+            {% if draft.style == 'straight' %} — Direct, punchy, no fluff
+            {% elif draft.style == 'story' %} — Opens with a scene, builds to insight
+            {% else %} — Structured with numbered steps{% endif %}
+          </span>
+        </div>
+      </div>
+      <textarea class="draft-text" id="draft-{{ loop.index }}" rows="8" oninput="updateCount(this)">{{ draft.post }}</textarea>
+      <div class="char-count"><span id="count-{{ loop.index }}">{{ draft.post|length }}</span> chars</div>
+      <div class="draft-actions">
+        <form method="POST" action="/linkedin/save" style="display:inline">
+          <input type="hidden" name="topic" value="{{ topic }}">
+          <input type="hidden" name="post" id="save-{{ loop.index }}" value="{{ draft.post }}">
+          <button type="submit" class="btn btn-sm btn-secondary" onclick="document.getElementById('save-{{ loop.index }}').value=document.getElementById('draft-{{ loop.index }}').value">Save Draft</button>
+        </form>
+        <button class="btn btn-sm btn-li" onclick="copyText('draft-{{ loop.index }}', this)">Copy to Clipboard</button>
+      </div>
+    </div>
+    {% endfor %}
+
+    <div style="margin-top:14px; padding-top:14px; border-top:1px solid #f0f0f0;">
+      <a href="/linkedin" class="btn btn-secondary">Start over</a>
+      {% if brief %}
+      <form method="POST" action="/linkedin/drafts" style="display:inline; margin-left:8px;">
+        <input type="hidden" name="topic" value="{{ topic }}">
+        <input type="hidden" name="brief" value="{{ brief | tojson }}">
+        <button type="submit" class="btn btn-secondary" onclick="showLoading('Regenerating variants...')">Regenerate all 3</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ===== SAVED LINKEDIN DRAFTS ===== -->
+  {% if saved_drafts %}
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Saved LinkedIn Drafts ({{ saved_drafts|length }})</span>
+      <a href="/drafts" class="btn btn-sm btn-secondary">All drafts</a>
+    </div>
+    {% for draft in saved_drafts %}
+    <div class="saved-item">
+      <div class="saved-meta">{{ draft.topic or 'Untitled' }} &middot; {{ draft.created_at[:10] if draft.created_at else '' }}</div>
+      <div class="saved-text">{{ draft.tweets[0][:200] if draft.tweets else '' }}{% if draft.tweets and draft.tweets[0]|length > 200 %}...{% endif %}</div>
+      <div style="display:flex; gap:6px;">
+        <button class="btn btn-sm btn-li" onclick="copyDirect(this, {{ draft.tweets[0]|tojson }})">Copy</button>
+        <form method="POST" action="/compose/delete/{{ draft.id }}" style="display:inline">
+          <button type="submit" class="btn btn-sm btn-secondary" style="color:#e0245e;">Delete</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+function showLoading(msg) {
+  document.getElementById('loadingMsg').textContent = msg || 'Working on it...';
+  document.getElementById('loadingOverlay').classList.add('show');
+}
+function updateCount(ta) {
+  var id = ta.id.replace('draft-', 'count-');
+  document.getElementById(id).textContent = ta.value.length;
+}
+function copyText(taId, btn) {
+  var text = document.getElementById(taId).value;
+  navigator.clipboard.writeText(text).then(function() {
+    btn.textContent = 'Copied!';
+    btn.style.background = '#f0fdf4'; btn.style.color = '#166534';
+    setTimeout(function() { btn.textContent = 'Copy to Clipboard'; btn.style.background = '#0A66C2'; btn.style.color = '#fff'; }, 2000);
+  });
+}
+function copyDirect(btn, text) {
+  navigator.clipboard.writeText(text).then(function() {
+    btn.textContent = 'Copied!';
+    btn.style.background = '#f0fdf4'; btn.style.color = '#166534';
+    setTimeout(function() { btn.textContent = 'Copy'; btn.style.background = '#0A66C2'; btn.style.color = '#fff'; }, 2000);
+  });
+}
+</script>
+</body>
+</html>
