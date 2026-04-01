@@ -805,8 +805,11 @@ def compose():
     db_uid = ensure_db_uid()
     suggestions = _safe_db(db_load_suggestions, db_uid)
     drafts_list = _safe_db(db_load_drafts, db_uid, "draft") or []
+    idea = request.args.get("idea", "")
+    format_type = request.args.get("format", "tweet")
     return render_template("compose.html", connected=True, username=session.get("username", ""),
-                           suggestions=suggestions, saved_drafts=drafts_list)
+                           suggestions=suggestions, saved_drafts=drafts_list,
+                           idea=idea, format_type=format_type)
 
 
 @app.route("/compose/suggestions", methods=["POST"])

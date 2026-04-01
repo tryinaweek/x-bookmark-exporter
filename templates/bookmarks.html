@@ -6,108 +6,171 @@
   <title>Bookmarks - MyBookmarks</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f5f5; color: #1a1a1a; min-height: 100vh; }
-    nav { background: #fff; border-bottom: 1px solid #f0f0f0; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; }
-    .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #1a1a1a; }
-    .nav-brand svg { width: 22px; height: 22px; }
-    .nav-brand span { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
-    .nav-right { display: flex; align-items: center; gap: 16px; }
-    .nav-link { font-size: 14px; font-weight: 500; color: #888; text-decoration: none; }
-    .nav-link:hover { color: #333; }
-    .nav-link.active { color: #7c3aed; }
-    .container { max-width: 960px; margin: 32px auto; padding: 0 24px; }
-    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
-    .page-title { font-size: 24px; font-weight: 700; }
-    .page-meta { font-size: 13px; color: #aaa; }
-    .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 28px; margin-bottom: 24px; }
-    .card h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: #444; }
-    .card h3 { font-size: 15px; font-weight: 600; margin-bottom: 12px; color: #333; }
-    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; text-decoration: none; transition: all 0.15s; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f8f8f8; color: #1a1a1a; min-height: 100vh; display: flex; }
+
+    /* Sidebar */
+    .sidebar { width: 220px; background: #fff; border-right: 1px solid #eee; padding: 20px 0; position: fixed; top: 0; left: 0; bottom: 0; display: flex; flex-direction: column; }
+    .sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 0 20px; margin-bottom: 28px; text-decoration: none; color: #1a1a1a; }
+    .sidebar-brand svg { width: 22px; height: 22px; flex-shrink: 0; }
+    .sidebar-brand span { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
+    .sidebar-section { font-size: 10px; font-weight: 600; color: #bbb; text-transform: uppercase; letter-spacing: 1px; padding: 0 20px; margin: 20px 0 8px; }
+    .sidebar-link { display: flex; align-items: center; gap: 10px; padding: 8px 20px; font-size: 14px; font-weight: 500; color: #666; text-decoration: none; transition: all 0.1s; border-left: 3px solid transparent; }
+    .sidebar-link:hover { color: #1a1a1a; background: #f8f8f8; }
+    .sidebar-link.active { color: #7c3aed; background: #faf5ff; border-left-color: #7c3aed; font-weight: 600; }
+    .sidebar-link svg { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.5; }
+    .sidebar-link.active svg { opacity: 1; }
+    .sidebar-spacer { flex: 1; }
+    .sidebar-user { padding: 12px 20px; border-top: 1px solid #f0f0f0; }
+    .sidebar-username { font-size: 13px; font-weight: 600; color: #333; }
+    .sidebar-signout { font-size: 12px; color: #e0245e; text-decoration: none; margin-top: 4px; display: inline-block; }
+    .sidebar-signout:hover { text-decoration: underline; }
+
+    /* Main content */
+    .main { margin-left: 220px; flex: 1; padding: 28px 32px; }
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; padding: 20px 16px; }
+    }
+
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .page-title { font-size: 22px; font-weight: 700; }
+    .page-meta { font-size: 12px; color: #aaa; margin-top: 2px; }
+
+    .card { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 18px; margin-bottom: 16px; }
+    .card h2 { font-size: 15px; font-weight: 600; margin-bottom: 14px; color: #333; }
+    .card h3 { font-size: 14px; font-weight: 600; margin-bottom: 10px; color: #333; }
+
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; text-decoration: none; transition: all 0.15s; }
     .btn:hover { opacity: 0.88; }
     .btn-ai { background: #7c3aed; color: #fff; }
     .btn-success { background: #00ba7c; color: #fff; }
-    .btn-secondary { background: #f5f5f5; color: #333; border: 1px solid #e5e5e5; }
-    .error { background: #fff0f0; border: 1px solid #ffc0c0; border-radius: 8px; padding: 14px 18px; color: #c0392b; font-size: 14px; margin-bottom: 20px; }
-    .empty { text-align: center; padding: 60px 20px; color: #aaa; font-size: 14px; }
-    .actions-bar { display: flex; gap: 10px; margin-bottom: 20px; }
+    .btn-secondary { background: #f5f5f5; color: #555; border: 1px solid #e5e5e5; }
 
-    .summary-box { background: #f0e6ff; border: 1px solid #d4b5ff; border-radius: 10px; padding: 18px 22px; font-size: 15px; line-height: 1.6; color: #4a1d8a; margin-bottom: 24px; }
-    .analysis-section { margin-bottom: 24px; }
+    .error { background: #fff0f0; border: 1px solid #ffc0c0; border-radius: 8px; padding: 10px 14px; color: #c0392b; font-size: 12px; margin-bottom: 14px; }
+    .empty { text-align: center; padding: 48px 20px; color: #aaa; font-size: 13px; }
+
+    .summary-box { background: #f0e6ff; border: 1px solid #d4b5ff; border-radius: 10px; padding: 14px 18px; font-size: 14px; line-height: 1.6; color: #4a1d8a; margin-bottom: 18px; }
+    .analysis-section { margin-bottom: 20px; }
     .analysis-section:last-child { margin-bottom: 0; }
-    .category-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
-    .category-card { border: 1px solid #e5e5e5; border-radius: 10px; padding: 16px; cursor: pointer; transition: box-shadow 0.15s, border-color 0.15s; }
+    .category-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+    .category-card { border: 1px solid #f0f0f0; border-radius: 8px; padding: 14px; cursor: pointer; transition: box-shadow 0.15s, border-color 0.15s; }
     .category-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-color: #7c3aed; }
     .category-card.selected { border-color: #7c3aed; background: #faf5ff; }
-    .category-name { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
-    .category-count { font-size: 12px; color: #888; margin-bottom: 8px; }
-    .category-summary { font-size: 13px; color: #555; line-height: 1.5; }
-    .timeline-item { display: flex; gap: 14px; padding: 12px 0; border-bottom: 1px solid #f0f0f0; align-items: center; }
+    .category-name { font-weight: 600; font-size: 13px; margin-bottom: 3px; }
+    .category-count { font-size: 11px; color: #888; margin-bottom: 6px; }
+    .category-summary { font-size: 12px; color: #555; line-height: 1.5; }
+
+    .timeline-item { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f0f0f0; align-items: center; }
     .timeline-item:last-child { border-bottom: none; }
-    .timeline-period { background: #e8f4fd; color: #1D9BF0; font-weight: 600; font-size: 12px; padding: 4px 10px; border-radius: 6px; white-space: nowrap; }
-    .timeline-theme { font-size: 14px; color: #333; flex: 1; }
-    .timeline-count { font-size: 12px; color: #888; background: #f0f0f0; padding: 2px 8px; border-radius: 10px; }
-    .gem-item { padding: 12px 16px; border-radius: 8px; margin-bottom: 10px; background: #f0fdf4; border: 1px solid #bbf7d0; font-size: 14px; line-height: 1.5; }
+    .timeline-period { background: #e8f4fd; color: #1D9BF0; font-weight: 600; font-size: 11px; padding: 3px 8px; border-radius: 6px; white-space: nowrap; }
+    .timeline-theme { font-size: 13px; color: #333; flex: 1; }
+    .timeline-count { font-size: 11px; color: #888; background: #f0f0f0; padding: 2px 8px; border-radius: 10px; }
+
+    .gem-item { padding: 10px 14px; border-radius: 8px; margin-bottom: 8px; background: #f0fdf4; border: 1px solid #bbf7d0; font-size: 13px; line-height: 1.5; }
     .gem-title { font-weight: 600; color: #166534; margin-bottom: 2px; }
-    .gem-reason { font-size: 13px; color: #15803d; }
-    .gem-ref { font-size: 12px; color: #22c55e; margin-top: 4px; }
+    .gem-reason { font-size: 12px; color: #15803d; }
+    .gem-ref { font-size: 11px; color: #22c55e; margin-top: 4px; }
     .gem-ref a { color: #22c55e; }
-    .stale-item { padding: 12px 16px; border-radius: 8px; margin-bottom: 10px; background: #fefce8; border: 1px solid #fde68a; font-size: 14px; line-height: 1.5; }
+
+    .stale-item { padding: 10px 14px; border-radius: 8px; margin-bottom: 8px; background: #fefce8; border: 1px solid #fde68a; font-size: 13px; line-height: 1.5; }
     .stale-title { font-weight: 600; color: #854d0e; margin-bottom: 2px; }
-    .stale-reason { font-size: 13px; color: #a16207; }
-    .stale-ref a { color: #a16207; font-size: 12px; }
-    .action-item { padding: 12px 14px; background: #f8f8ff; border: 1px solid #e8e5ff; border-radius: 8px; margin-bottom: 8px; font-size: 14px; line-height: 1.5; }
+    .stale-reason { font-size: 12px; color: #a16207; }
+    .stale-ref a { color: #a16207; font-size: 11px; }
+
+    .action-item { padding: 10px 12px; background: #f8f8ff; border: 1px solid #e8e5ff; border-radius: 8px; margin-bottom: 6px; font-size: 13px; line-height: 1.5; }
     .action-text::before { content: "\2794  "; color: #7c3aed; }
-    .action-refs { margin-top: 6px; display: flex; gap: 8px; flex-wrap: wrap; }
-    .action-ref { font-size: 12px; color: #7c3aed; text-decoration: none; background: #f3edff; padding: 2px 8px; border-radius: 4px; }
+    .action-refs { margin-top: 4px; display: flex; gap: 6px; flex-wrap: wrap; }
+    .action-ref { font-size: 11px; color: #7c3aed; text-decoration: none; background: #f3edff; padding: 2px 8px; border-radius: 4px; }
     .action-ref:hover { background: #e8d5ff; }
 
-    .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
-    .filter-pill { font-size: 12px; padding: 5px 14px; border-radius: 20px; border: 1px solid #e5e5e5; background: #fff; cursor: pointer; color: #555; font-weight: 500; transition: all 0.15s; }
+    .filter-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+    .filter-pill { font-size: 11px; padding: 4px 12px; border-radius: 20px; border: 1px solid #e5e5e5; background: #fff; cursor: pointer; color: #555; font-weight: 500; transition: all 0.15s; }
     .filter-pill:hover { border-color: #7c3aed; color: #7c3aed; }
     .filter-pill.active { background: #7c3aed; color: #fff; border-color: #7c3aed; }
-    .filter-label { font-size: 13px; color: #7c3aed; background: #f3edff; padding: 4px 12px; border-radius: 6px; display: none; align-items: center; gap: 8px; }
+    .filter-label { font-size: 12px; color: #7c3aed; background: #f3edff; padding: 3px 10px; border-radius: 6px; display: none; align-items: center; gap: 6px; }
     .filter-label.active { display: inline-flex; }
     .filter-clear { cursor: pointer; font-weight: 700; color: #7c3aed; }
 
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    thead th { text-align: left; padding: 10px 12px; background: #f8f8f8; border-bottom: 2px solid #e5e5e5; font-weight: 600; color: #555; white-space: nowrap; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    thead th { text-align: left; padding: 8px 10px; background: #f8f8f8; border-bottom: 2px solid #eee; font-weight: 600; color: #555; white-space: nowrap; }
     tbody tr { border-bottom: 1px solid #f0f0f0; transition: background 0.15s; }
     tbody tr:hover { background: #fafafa; }
     tbody tr.highlight { background: #f3edff; }
     tbody tr.dimmed { opacity: 0.25; }
-    tbody td { padding: 10px 12px; vertical-align: top; }
-    .tweet-text { max-width: 420px; line-height: 1.5; }
+    tbody td { padding: 8px 10px; vertical-align: top; }
+    .tweet-text { max-width: 400px; line-height: 1.5; }
     .author { white-space: nowrap; }
-    .handle { color: #888; font-size: 12px; }
+    .handle { color: #888; font-size: 11px; }
     .date { color: #aaa; white-space: nowrap; }
     .metric { text-align: right; color: #888; }
-    .link a { color: #1D9BF0; text-decoration: none; font-size: 12px; }
+    .link a { color: #1D9BF0; text-decoration: none; font-size: 11px; }
     .link a:hover { text-decoration: underline; }
+
+    .loading-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.92); z-index: 1000; flex-direction: column; align-items: center; justify-content: center; }
+    .loading-overlay.show { display: flex; }
+    .loading-spinner { width: 36px; height: 36px; border: 3px solid #f0f0f0; border-top: 3px solid #7c3aed; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 14px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 15px; font-weight: 600; color: #333; }
+    .loading-sub { font-size: 12px; color: #999; margin-top: 4px; }
   </style>
 </head>
 <body>
 
-<nav>
-  <a href="/" class="nav-brand">
+<!-- Sidebar -->
+<aside class="sidebar">
+  <a href="/" class="sidebar-brand">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
       <path d="M12 7l1.5 3 3.5.5-2.5 2.5.5 3.5L12 15l-3 1.5.5-3.5L7 10.5l3.5-.5z" fill="#7c3aed" stroke="#7c3aed" stroke-width="1.5"/>
     </svg>
     <span>MyBookmarks</span>
   </a>
-  <div class="nav-right">
-    <a href="/" class="nav-link">Dashboard</a>
-    <a href="/bookmarks" class="nav-link active">Bookmarks</a>
-    <a href="/tweets" class="nav-link">Tweets</a>
-    <a href="/compose" class="nav-link">Compose</a>
-    <a href="/calendar" class="nav-link">Calendar</a>
-    <a href="/drafts" class="nav-link">Drafts</a>
-    <a href="/settings" class="nav-link">Settings</a>
-    <a href="/logout" class="nav-link" style="color:#e0245e;">Sign out</a>
+  <div class="sidebar-section">Overview</div>
+  <a href="/" class="sidebar-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    Dashboard
+  </a>
+  <a href="/bookmarks" class="sidebar-link active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+    Bookmarks
+  </a>
+  <a href="/tweets" class="sidebar-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    Tweets
+  </a>
+  <div class="sidebar-section">Create</div>
+  <a href="/compose" class="sidebar-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Compose
+  </a>
+  <a href="/calendar" class="sidebar-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Calendar
+  </a>
+  <a href="/drafts" class="sidebar-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+    Drafts
+  </a>
+  <div class="sidebar-spacer"></div>
+  <a href="/settings" class="sidebar-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    Settings
+  </a>
+  <div class="sidebar-user">
+    <div class="sidebar-username">@{{ username }}</div>
+    <a href="/logout" class="sidebar-signout">Sign out</a>
   </div>
-</nav>
+</aside>
 
-<div class="container">
+<!-- Loading overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Analyzing bookmarks...</div>
+  <div class="loading-sub">AI is categorizing and finding insights.</div>
+</div>
+
+<!-- Main Content -->
+<div class="main">
 
   {% if error %}
   <div class="error">{{ error }}</div>
@@ -121,9 +184,9 @@
       {% endif %}
     </div>
     {% if bookmarks %}
-    <div style="display:flex; gap:10px;">
+    <div style="display:flex; gap:8px;">
       <form method="POST" action="/bookmarks/analyze" style="display:inline">
-        <button type="submit" class="btn btn-ai" onclick="this.textContent='Analyzing...'; this.style.opacity='0.6';">{% if analysis %}Re-analyze{% else %}Analyze with AI{% endif %}</button>
+        <button type="submit" class="btn btn-ai" onclick="this.textContent='Analyzing...'; this.style.opacity='0.6'; showLoading();">{% if analysis %}Re-analyze{% else %}Analyze with AI{% endif %}</button>
       </form>
       <form method="POST" action="/bookmarks/download" style="display:inline">
         <button type="submit" class="btn btn-success">Download Excel</button>
@@ -145,7 +208,7 @@
 
     {% if analysis.categories %}
     <div class="analysis-section">
-      <h3>Categories <span style="font-weight:400; font-size:12px; color:#888;">(click to filter)</span></h3>
+      <h3>Categories <span style="font-weight:400; font-size:11px; color:#888;">(click to filter)</span></h3>
       <div class="category-grid">
         {% for cat in analysis.categories %}
         <div class="category-card" onclick="filterByCategory(this, {{ cat.bookmark_ids | tojson }}, '{{ cat.name }}')" data-name="{{ cat.name }}">
@@ -225,7 +288,7 @@
 
   {% if bookmarks %}
   <div class="card" id="bookmarks-card">
-    <div style="display:flex; align-items:center; gap:16px; margin-bottom:16px;">
+    <div style="display:flex; align-items:center; gap:14px; margin-bottom:12px;">
       <h2 style="margin-bottom:0;">All Bookmarks</h2>
       <span class="filter-label" id="filterLabel">
         Filtered: <strong id="filterName"></strong>
@@ -242,6 +305,7 @@
     </div>
     {% endif %}
 
+    <div style="overflow-x:auto;">
     <table>
       <thead><tr><th>#</th><th>Tweet</th><th>Author</th><th>Date</th><th style="text-align:right">Likes</th><th style="text-align:right">RTs</th><th>Link</th></tr></thead>
       <tbody id="bookmarks-tbody">
@@ -258,12 +322,16 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
   </div>
   {% endif %}
 
 </div>
 
 <script>
+function showLoading() {
+  document.getElementById('loadingOverlay').classList.add('show');
+}
 function applyFilter(ids, name) {
   document.querySelectorAll('#bookmarks-tbody tr').forEach(row => {
     const idx = parseInt(row.dataset.index);

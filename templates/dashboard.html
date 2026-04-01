@@ -245,19 +245,29 @@
     </div>
   </div>
 
+  <!-- Quick Compose -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Quick Compose</span>
+      <a href="/compose" class="btn btn-secondary">Full editor</a>
+    </div>
+    <form method="POST" action="/compose/generate" style="display:flex; gap:10px; align-items:flex-start;">
+      <input type="hidden" name="platform" value="x">
+      <input type="hidden" name="format" value="tweet">
+      <textarea name="idea" placeholder="What's on your mind?" rows="2" style="flex:1; border:1px solid #eee; border-radius:8px; padding:10px 12px; font-size:13px; font-family:inherit; outline:none; resize:none; line-height:1.5;" onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='#eee'"></textarea>
+      <button type="submit" class="btn btn-ai" onclick="this.textContent='...'; this.style.opacity='0.6';">Generate</button>
+    </form>
+  </div>
+
   <!-- Content Ideas -->
+  {% if suggestions %}
   <div class="card">
     <div class="card-header">
       <span class="card-title">Content Ideas</span>
-      {% if suggestions %}
-      <form method="POST" action="/compose/suggestions" style="display:inline">
-        <button type="submit" class="btn btn-secondary" onclick="this.textContent='...'; this.style.opacity='0.6';">Refresh</button>
-      </form>
-      {% endif %}
+      <a href="/compose" class="btn btn-secondary">View all</a>
     </div>
-    {% if suggestions %}
     <div class="suggestion-grid">
-      {% for s in suggestions %}
+      {% for s in suggestions[:4] %}
       <div class="suggestion-card">
         <div class="suggestion-topic">{{ s.topic }}</div>
         <div class="suggestion-hook">"{{ s.hook }}"</div>
@@ -268,17 +278,18 @@
       </div>
       {% endfor %}
     </div>
-    {% else %}
-    <p class="empty-note">
-      {% if bm_analysis or tw_analysis %}Generate ideas from your bookmark interests and tweet patterns.{% else %}Sync your data first to get personalized ideas.{% endif %}
-    </p>
-    {% if bm_analysis or tw_analysis %}
+  </div>
+  {% elif bm_analysis or tw_analysis %}
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Content Ideas</span>
+    </div>
+    <p class="empty-note">Generate ideas from your bookmark interests and tweet patterns.</p>
     <form method="POST" action="/compose/suggestions" style="margin-top:10px;">
       <button type="submit" class="btn btn-ai" onclick="this.textContent='Generating...'; this.style.opacity='0.6';">Get content ideas</button>
     </form>
-    {% endif %}
-    {% endif %}
   </div>
+  {% endif %}
 
   {% if drafts %}
   <div class="card">
@@ -289,7 +300,7 @@
     {% for draft in drafts[:3] %}
     <div class="draft-item">
       <div class="draft-meta">{{ draft.topic or 'Untitled' }} &middot; {{ draft.format }} &middot; {{ draft.created_at[:10] if draft.created_at else '' }}</div>
-      <div class="draft-text">{{ draft.tweets[0][:120] if draft.tweets else '' }}{% if draft.tweets and draft.tweets[0]|length > 120 %}...{% endif %}</div>
+      <div class="draft-text">{{ draft.tweets[0][:100] if draft.tweets else '' }}{% if draft.tweets and draft.tweets[0]|length > 100 %}...{% endif %}</div>
       <div class="draft-actions">
         <form method="POST" action="/compose/post" style="display:inline">
           <input type="hidden" name="tweets" value="{{ draft.tweets | tojson }}">

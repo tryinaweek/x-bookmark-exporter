@@ -6,80 +6,118 @@
   <title>Voice Profile - MyBookmarks</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f5f5; color: #1a1a1a; min-height: 100vh; }
-    nav { background: #fff; border-bottom: 1px solid #f0f0f0; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; }
-    .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #1a1a1a; }
-    .nav-brand svg { width: 22px; height: 22px; }
-    .nav-brand span { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
-    .nav-right { display: flex; align-items: center; gap: 16px; }
-    .nav-link { font-size: 14px; font-weight: 500; color: #888; text-decoration: none; }
-    .nav-link:hover { color: #333; }
-    .nav-link.active { color: #7c3aed; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f8f8f8; color: #1a1a1a; min-height: 100vh; display: flex; }
 
-    .container { max-width: 680px; margin: 32px auto; padding: 0 24px; }
-    .page-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
-    .page-sub { font-size: 14px; color: #888; margin-bottom: 28px; line-height: 1.5; }
+    /* Sidebar */
+    .sidebar { width: 220px; background: #fff; border-right: 1px solid #eee; padding: 20px 0; position: fixed; top: 0; left: 0; bottom: 0; display: flex; flex-direction: column; }
+    .sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 0 20px; margin-bottom: 28px; text-decoration: none; color: #1a1a1a; }
+    .sidebar-brand svg { width: 22px; height: 22px; flex-shrink: 0; }
+    .sidebar-brand span { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
+    .sidebar-section { font-size: 10px; font-weight: 600; color: #bbb; text-transform: uppercase; letter-spacing: 1px; padding: 0 20px; margin: 20px 0 8px; }
+    .sidebar-link { display: flex; align-items: center; gap: 10px; padding: 8px 20px; font-size: 14px; font-weight: 500; color: #666; text-decoration: none; transition: all 0.1s; border-left: 3px solid transparent; }
+    .sidebar-link:hover { color: #1a1a1a; background: #f8f8f8; }
+    .sidebar-link.active { color: #7c3aed; background: #faf5ff; border-left-color: #7c3aed; font-weight: 600; }
+    .sidebar-link svg { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.5; }
+    .sidebar-link.active svg { opacity: 1; }
+    .sidebar-spacer { flex: 1; }
+    .sidebar-user { padding: 12px 20px; border-top: 1px solid #f0f0f0; }
+    .sidebar-username { font-size: 13px; font-weight: 600; color: #333; }
+    .sidebar-signout { font-size: 12px; color: #e0245e; text-decoration: none; margin-top: 4px; display: inline-block; }
+    .sidebar-signout:hover { text-decoration: underline; }
 
-    .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 28px; margin-bottom: 24px; }
-    .card h2 { font-size: 16px; font-weight: 600; margin-bottom: 4px; color: #333; }
-    .card-sub { font-size: 13px; color: #aaa; margin-bottom: 16px; }
-
-    .form-group { margin-bottom: 24px; }
-    .form-group:last-child { margin-bottom: 0; }
-    .form-label { display: block; font-size: 14px; font-weight: 600; color: #333; margin-bottom: 6px; }
-    .form-hint { font-size: 12px; color: #aaa; margin-bottom: 8px; line-height: 1.4; }
-    textarea, input[type="text"] {
-      width: 100%; border: 1px solid #ddd; border-radius: 8px; padding: 12px 14px;
-      font-size: 14px; font-family: inherit; outline: none; transition: border 0.15s;
-      line-height: 1.6;
+    /* Main content */
+    .main { margin-left: 220px; flex: 1; padding: 28px 32px; max-width: 780px; }
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; padding: 20px 16px; }
     }
-    textarea { resize: vertical; min-height: 100px; }
+
+    .page-header { margin-bottom: 20px; }
+    .page-title { font-size: 22px; font-weight: 700; }
+    .page-sub { font-size: 13px; color: #888; margin-top: 4px; line-height: 1.5; }
+
+    .card { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 18px; margin-bottom: 16px; }
+    .card h2 { font-size: 15px; font-weight: 600; margin-bottom: 3px; color: #333; }
+    .card-sub { font-size: 12px; color: #aaa; margin-bottom: 14px; }
+
+    .form-group { margin-bottom: 18px; }
+    .form-group:last-child { margin-bottom: 0; }
+    .form-label { display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 4px; }
+    .form-hint { font-size: 11px; color: #aaa; margin-bottom: 6px; line-height: 1.4; }
+    textarea, input[type="text"] { width: 100%; border: 1px solid #ddd; border-radius: 8px; padding: 10px 12px; font-size: 13px; font-family: inherit; outline: none; transition: border 0.15s; line-height: 1.6; }
+    textarea { resize: vertical; min-height: 80px; }
     textarea:focus, input[type="text"]:focus { border-color: #7c3aed; }
 
-    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; text-decoration: none; transition: all 0.15s; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; text-decoration: none; transition: all 0.15s; }
     .btn:hover { opacity: 0.88; }
     .btn-primary { background: #7c3aed; color: #fff; }
-    .btn-secondary { background: #f5f5f5; color: #333; border: 1px solid #e5e5e5; }
+    .btn-secondary { background: #f5f5f5; color: #555; border: 1px solid #e5e5e5; }
 
-    .saved-msg { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; color: #166534; font-size: 14px; margin-bottom: 20px; }
+    .saved-msg { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 14px; color: #166534; font-size: 13px; margin-bottom: 16px; }
 
-    .example-note {
-      background: #faf8ff; border: 1px solid #e8e5ff; border-radius: 8px;
-      padding: 14px; font-size: 13px; color: #666; line-height: 1.5; margin-bottom: 16px;
-    }
+    .example-note { background: #faf8ff; border: 1px solid #e8e5ff; border-radius: 8px; padding: 12px; font-size: 12px; color: #666; line-height: 1.5; margin-bottom: 12px; }
     .example-note strong { color: #7c3aed; }
   </style>
 </head>
 <body>
 
-<nav>
-  <a href="/" class="nav-brand">
+<!-- Sidebar -->
+<aside class="sidebar">
+  <a href="/" class="sidebar-brand">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
       <path d="M12 7l1.5 3 3.5.5-2.5 2.5.5 3.5L12 15l-3 1.5.5-3.5L7 10.5l3.5-.5z" fill="#7c3aed" stroke="#7c3aed" stroke-width="1.5"/>
     </svg>
     <span>MyBookmarks</span>
   </a>
-  <div class="nav-right">
-    <a href="/" class="nav-link">Dashboard</a>
-    <a href="/bookmarks" class="nav-link">Bookmarks</a>
-    <a href="/tweets" class="nav-link">Tweets</a>
-    <a href="/compose" class="nav-link">Compose</a>
-    <a href="/calendar" class="nav-link">Calendar</a>
-    <a href="/drafts" class="nav-link">Drafts</a>
-    <a href="/settings" class="nav-link active">Settings</a>
-    <a href="/logout" class="nav-link" style="color:#e0245e;">Sign out</a>
+  <div class="sidebar-section">Overview</div>
+  <a href="/" class="sidebar-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    Dashboard
+  </a>
+  <a href="/bookmarks" class="sidebar-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+    Bookmarks
+  </a>
+  <a href="/tweets" class="sidebar-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    Tweets
+  </a>
+  <div class="sidebar-section">Create</div>
+  <a href="/compose" class="sidebar-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Compose
+  </a>
+  <a href="/calendar" class="sidebar-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Calendar
+  </a>
+  <a href="/drafts" class="sidebar-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+    Drafts
+  </a>
+  <div class="sidebar-spacer"></div>
+  <a href="/settings" class="sidebar-link active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    Settings
+  </a>
+  <div class="sidebar-user">
+    <div class="sidebar-username">@{{ username }}</div>
+    <a href="/logout" class="sidebar-signout">Sign out</a>
   </div>
-</nav>
+</aside>
 
-<div class="container">
+<!-- Main Content -->
+<div class="main">
 
   {% if saved %}
   <div class="saved-msg">Voice profile saved! All content generation will now use your updated profile.</div>
   {% endif %}
 
-  <h1 class="page-title">Voice Profile</h1>
-  <p class="page-sub">This is how the AI understands you. The more specific you are, the more your generated content will sound like YOU - not generic advice.</p>
+  <div class="page-header">
+    <h1 class="page-title">Voice Profile</h1>
+    <p class="page-sub">This is how the AI understands you. The more specific you are, the more your generated content will sound like YOU.</p>
+  </div>
 
   <form method="POST" action="/settings/save">
 
@@ -111,13 +149,13 @@
       <p class="card-sub">Paste 3-5 posts that sound most like YOU. The AI will match this style.</p>
 
       <div class="example-note">
-        <strong>Tip:</strong> Paste your best posts below, separated by a line with just <code>---</code> between them. Pick posts where you think "this sounds exactly like me" - not your most viral ones, but the ones that capture your authentic voice.
+        <strong>Tip:</strong> Paste your best posts below, separated by a line with just <code>---</code> between them. Pick posts where you think "this sounds exactly like me".
       </div>
 
       <div class="form-group">
         <label class="form-label">Voice Examples</label>
         <div class="form-hint">Paste 3-5 of your best posts. Separate each with --- on its own line.</div>
-        <textarea name="voice_examples" rows="12" placeholder="I just passed on a deal everyone else loved.
+        <textarea name="voice_examples" rows="10" placeholder="I just passed on a deal everyone else loved.
 
 The founder had great traction but couldn't explain why customers were churning. That's not a growth problem. That's a product problem wearing a growth costume.
 
@@ -142,17 +180,17 @@ Not because it's smarter. Because it forces you to think about repo structure fi
       <div class="form-group">
         <label class="form-label">Strong Opinions & Takes</label>
         <div class="form-hint">What positions do you hold that not everyone agrees with?</div>
-        <textarea name="opinions" rows="4" placeholder="e.g. No-code will replace 80% of custom development within 3 years. Most AI startups are features, not companies. The best founders I've backed were operators first, not engineers. Scheduling tools are a waste - consistency matters more than timing.">{{ profile.opinions or '' }}</textarea>
+        <textarea name="opinions" rows="4" placeholder="e.g. No-code will replace 80% of custom development within 3 years. Most AI startups are features, not companies. The best founders I've backed were operators first, not engineers.">{{ profile.opinions or '' }}</textarea>
       </div>
 
       <div class="form-group">
         <label class="form-label">Things to NEVER Say</label>
         <div class="form-hint">Words, phrases, or styles that don't sound like you.</div>
-        <textarea name="donts" rows="3" placeholder="e.g. Never say 'game-changer', 'disrupt', 'synergy'. Don't use corporate speak. Don't start posts with emojis. Don't give generic advice like 'work hard'. No humble-bragging.">{{ profile.donts or '' }}</textarea>
+        <textarea name="donts" rows="3" placeholder="e.g. Never say 'game-changer', 'disrupt', 'synergy'. Don't use corporate speak. Don't start posts with emojis. No humble-bragging.">{{ profile.donts or '' }}</textarea>
       </div>
     </div>
 
-    <div style="display:flex; gap:12px; justify-content:flex-end; margin-bottom:40px;">
+    <div style="display:flex; gap:10px; justify-content:flex-end; margin-bottom:32px;">
       <a href="/" class="btn btn-secondary">Cancel</a>
       <button type="submit" class="btn btn-primary">Save Voice Profile</button>
     </div>

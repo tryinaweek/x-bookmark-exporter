@@ -6,144 +6,187 @@
   <title>Compose - MyBookmarks</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #f5f5f5; color: #1a1a1a; min-height: 100vh;
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f8f8f8; color: #1a1a1a; min-height: 100vh; display: flex; }
+
+    /* Sidebar */
+    .sidebar { width: 220px; background: #fff; border-right: 1px solid #eee; padding: 20px 0; position: fixed; top: 0; left: 0; bottom: 0; display: flex; flex-direction: column; z-index: 10; }
+    .sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 0 20px; margin-bottom: 28px; text-decoration: none; color: #1a1a1a; }
+    .sidebar-brand svg { width: 22px; height: 22px; flex-shrink: 0; }
+    .sidebar-brand span { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
+    .sidebar-section { font-size: 10px; font-weight: 600; color: #bbb; text-transform: uppercase; letter-spacing: 1px; padding: 0 20px; margin: 20px 0 8px; }
+    .sidebar-link { display: flex; align-items: center; gap: 10px; padding: 8px 20px; font-size: 14px; font-weight: 500; color: #666; text-decoration: none; transition: all 0.1s; border-left: 3px solid transparent; }
+    .sidebar-link:hover { color: #1a1a1a; background: #f8f8f8; }
+    .sidebar-link.active { color: #7c3aed; background: #faf5ff; border-left-color: #7c3aed; font-weight: 600; }
+    .sidebar-link svg { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.5; }
+    .sidebar-link.active svg { opacity: 1; }
+    .sidebar-spacer { flex: 1; }
+    .sidebar-user { padding: 12px 20px; border-top: 1px solid #f0f0f0; }
+    .sidebar-username { font-size: 13px; font-weight: 600; color: #333; }
+    .sidebar-signout { font-size: 12px; color: #e0245e; text-decoration: none; margin-top: 4px; display: inline-block; }
+    .sidebar-signout:hover { text-decoration: underline; }
+
+    /* Main content */
+    .main { margin-left: 220px; flex: 1; padding: 28px 32px; max-width: 820px; }
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; padding: 20px 16px; }
     }
-    nav {
-      background: #fff; border-bottom: 1px solid #f0f0f0;
-      padding: 14px 32px; display: flex; align-items: center; justify-content: space-between;
-    }
-    .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #1a1a1a; }
-    .nav-brand svg { width: 22px; height: 22px; }
-    .nav-brand span { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
-    .btn-ghost { background: transparent; color: #555; padding: 8px 16px; font-size: 14px; font-weight: 600; text-decoration: none; }
-    .tabs { display: flex; gap: 0; background: #fff; border-bottom: 1px solid #e5e5e5; padding: 0 32px; }
-    .tab { padding: 12px 20px; font-size: 14px; font-weight: 600; color: #888; text-decoration: none; border-bottom: 2px solid transparent; transition: all 0.15s; }
-    .tab:hover { color: #333; }
-    .tab.active { color: #7c3aed; border-bottom-color: #7c3aed; }
-    .container { max-width: 720px; margin: 32px auto; padding: 0 24px; }
-    .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 28px; margin-bottom: 24px; }
-    .card h2 { font-size: 16px; font-weight: 600; margin-bottom: 6px; color: #444; }
-    .card-sub { font-size: 13px; color: #aaa; margin-bottom: 20px; }
-    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; text-decoration: none; transition: all 0.15s; }
+
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .page-title { font-size: 22px; font-weight: 700; }
+
+    .card { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 18px; margin-bottom: 16px; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .card-title { font-size: 14px; font-weight: 600; color: #333; }
+    .card-sub { font-size: 12px; color: #aaa; }
+
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; text-decoration: none; transition: all 0.15s; }
     .btn:hover { opacity: 0.88; }
     .btn-ai { background: #7c3aed; color: #fff; }
     .btn-blue { background: #1D9BF0; color: #fff; }
-    .btn-secondary { background: #f5f5f5; color: #333; border: 1px solid #e5e5e5; }
-    .btn-sm { padding: 6px 14px; font-size: 12px; }
-    .error { background: #fff0f0; border: 1px solid #ffc0c0; border-radius: 8px; padding: 14px 18px; color: #c0392b; font-size: 14px; margin-bottom: 20px; }
-    .success-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 24px; text-align: center; margin-bottom: 20px; }
-    .success-box h3 { color: #166534; margin-bottom: 8px; }
-    .success-box p { color: #15803d; font-size: 14px; margin-bottom: 14px; }
-    .success-box a { color: #166534; font-weight: 600; }
+    .btn-secondary { background: #f5f5f5; color: #555; border: 1px solid #e5e5e5; }
+    .btn-sm { padding: 5px 12px; font-size: 11px; }
+    .btn-lg { padding: 10px 20px; font-size: 14px; }
 
-    /* Suggestions */
-    .suggestion-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    @media (max-width: 600px) { .suggestion-grid { grid-template-columns: 1fr; } }
-    .suggestion-card {
-      border: 1px solid #f0f0f0; border-radius: 10px; padding: 16px;
-      transition: border-color 0.15s, box-shadow 0.15s;
-    }
-    .suggestion-card:hover { border-color: #7c3aed; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-    .suggestion-topic { font-weight: 600; font-size: 14px; margin-bottom: 6px; color: #1a1a1a; }
-    .suggestion-hook { font-size: 13px; color: #666; line-height: 1.5; margin-bottom: 8px; font-style: italic; }
-    .suggestion-meta { display: flex; justify-content: space-between; align-items: center; }
-    .suggestion-badge {
-      font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px;
-    }
-    .badge-tweet { background: #e8f4fd; color: #1D9BF0; }
-    .badge-thread { background: #f3edff; color: #7c3aed; }
-    .suggestion-why { font-size: 11px; color: #aaa; max-width: 60%; }
-    .suggestion-compose {
-      font-size: 12px; font-weight: 600; color: #7c3aed; cursor: pointer;
-      background: #f3edff; padding: 4px 12px; border-radius: 6px; border: none;
-      transition: background 0.15s;
-    }
-    .suggestion-compose:hover { background: #e8d5ff; }
+    .error { background: #fff0f0; border: 1px solid #ffc0c0; border-radius: 8px; padding: 10px 14px; color: #c0392b; font-size: 12px; margin-bottom: 14px; }
+    .success-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 16px; text-align: center; margin-bottom: 16px; }
+    .success-box h3 { color: #166534; margin-bottom: 4px; font-size: 15px; }
+    .success-box p { color: #15803d; font-size: 13px; margin-bottom: 8px; }
+    .success-box a { color: #166534; font-weight: 600; font-size: 13px; }
 
     /* Compose form */
-    .form-group { margin-bottom: 16px; }
-    .form-label { display: block; font-size: 13px; font-weight: 600; color: #555; margin-bottom: 6px; }
-    textarea {
-      width: 100%; border: 1px solid #ddd; border-radius: 8px; padding: 12px 14px;
-      font-size: 15px; font-family: inherit; resize: vertical; min-height: 80px;
-      outline: none; transition: border 0.15s; line-height: 1.5;
-    }
-    textarea:focus { border-color: #7c3aed; }
-    .format-toggle { display: flex; gap: 0; margin-bottom: 16px; }
-    .format-btn {
-      flex: 1; padding: 10px; text-align: center; font-size: 14px; font-weight: 600;
-      border: 1px solid #e5e5e5; cursor: pointer; transition: all 0.15s;
-      background: #fff; color: #888;
-    }
-    .format-btn:first-child { border-radius: 8px 0 0 8px; }
-    .format-btn:last-child { border-radius: 0 8px 8px 0; }
-    .format-btn.active { background: #7c3aed; color: #fff; border-color: #7c3aed; }
+    .compose-area { position: relative; }
+    .compose-textarea { width: 100%; border: 1px solid #e5e5e5; border-radius: 10px; padding: 14px 16px; font-size: 15px; font-family: inherit; resize: vertical; min-height: 100px; outline: none; transition: border 0.15s; line-height: 1.6; background: #fff; }
+    .compose-textarea:focus { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.08); }
+    .compose-textarea::placeholder { color: #bbb; }
+    .compose-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; flex-wrap: wrap; gap: 10px; }
+
+    /* Platform & format toggles */
+    .toggle-row { display: flex; gap: 6px; align-items: center; }
+    .toggle-label { font-size: 11px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 4px; }
+    .toggle-btn { padding: 5px 12px; font-size: 12px; font-weight: 600; border: 1px solid #e5e5e5; border-radius: 6px; cursor: pointer; background: #fff; color: #888; transition: all 0.15s; }
+    .toggle-btn.active { background: #7c3aed; color: #fff; border-color: #7c3aed; }
+    .toggle-btn:hover:not(.active) { border-color: #ccc; color: #555; }
+    .toggle-divider { width: 1px; height: 20px; background: #eee; margin: 0 4px; }
+
+    /* Suggestion chips */
+    .ideas-section { margin-top: 0; }
+    .ideas-toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 0; user-select: none; }
+    .ideas-toggle-icon { width: 16px; height: 16px; color: #999; transition: transform 0.2s; }
+    .ideas-toggle-icon.open { transform: rotate(90deg); }
+    .ideas-toggle-text { font-size: 12px; font-weight: 600; color: #999; }
+    .ideas-toggle-count { font-size: 10px; color: #bbb; background: #f5f5f5; padding: 1px 6px; border-radius: 8px; }
+    .ideas-grid { display: none; grid-template-columns: 1fr; gap: 6px; margin-top: 8px; }
+    .ideas-grid.open { display: grid; }
+    .idea-chip { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border: 1px solid #f0f0f0; border-radius: 8px; transition: border-color 0.15s; cursor: pointer; }
+    .idea-chip:hover { border-color: #7c3aed; background: #faf8ff; }
+    .idea-content { flex: 1; min-width: 0; }
+    .idea-topic { font-weight: 600; font-size: 13px; color: #1a1a1a; margin-bottom: 2px; }
+    .idea-hook { font-size: 12px; color: #888; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .idea-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .idea-badge { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 8px; }
+    .badge-tweet { background: #e8f4fd; color: #1D9BF0; }
+    .badge-thread { background: #f3edff; color: #7c3aed; }
+    .idea-use { font-size: 11px; font-weight: 600; color: #7c3aed; background: #f3edff; padding: 3px 10px; border-radius: 6px; border: none; cursor: pointer; white-space: nowrap; }
+    .idea-use:hover { background: #e8d5ff; }
 
     /* Draft preview */
-    .tweet-preview {
-      border: 1px solid #e5e5e5; border-radius: 14px; padding: 18px 20px;
-      margin-bottom: 14px; position: relative; background: #fff;
-    }
-    .tweet-preview:last-of-type { margin-bottom: 0; }
-    .tweet-preview-header {
-      display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
-    }
-    .preview-avatar {
-      width: 36px; height: 36px; background: #7c3aed; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      color: #fff; font-weight: 700; font-size: 14px;
-    }
-    .preview-name { font-weight: 700; font-size: 14px; }
-    .preview-handle { font-size: 13px; color: #888; }
-    .tweet-preview-edit {
-      width: 100%; border: 1px solid #f0f0f0; border-radius: 8px; padding: 12px;
-      font-size: 15px; font-family: inherit; resize: vertical; min-height: 80px;
-      outline: none; line-height: 1.6; background: #fafafa;
-    }
+    .tweet-preview { border: 1px solid #eee; border-radius: 10px; padding: 14px 16px; margin-bottom: 8px; background: #fff; }
+    .tweet-preview-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .preview-avatar { width: 32px; height: 32px; background: #7c3aed; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+    .preview-name { font-weight: 700; font-size: 13px; }
+    .preview-handle { font-size: 12px; color: #888; }
+    .tweet-preview-edit { width: 100%; border: 1px solid #f0f0f0; border-radius: 8px; padding: 10px; font-size: 14px; font-family: inherit; resize: vertical; min-height: 70px; outline: none; line-height: 1.6; background: #fafafa; }
     .tweet-preview-edit:focus { border-color: #7c3aed; background: #fff; }
-    .char-count { font-size: 11px; color: #aaa; text-align: right; margin-top: 4px; }
+    .char-count { font-size: 10px; color: #aaa; text-align: right; margin-top: 3px; }
     .char-count.over { color: #e0245e; font-weight: 600; }
-    .thread-connector {
-      width: 2px; height: 14px; background: #e5e5e5; margin: 0 auto;
-    }
-    .tweet-label {
-      font-size: 11px; font-weight: 600; color: #aaa; text-transform: uppercase;
-      letter-spacing: 0.5px; margin-bottom: 6px;
-    }
+    .thread-connector { width: 2px; height: 8px; background: #e5e5e5; margin: 0 auto; }
+    .tweet-label { font-size: 10px; font-weight: 600; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
     .tweet-label-hook { color: #7c3aed; }
     .tweet-label-cta { color: #00ba7c; }
 
-    .post-actions {
-      display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;
-      padding-top: 20px; border-top: 1px solid #f0f0f0;
-    }
+    .post-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; padding-top: 14px; border-top: 1px solid #f0f0f0; flex-wrap: wrap; }
+
+    /* Schedule picker */
+    .schedule-picker { display: none; margin-top: 12px; padding: 14px; background: #faf8ff; border: 1px solid #e8e5ff; border-radius: 10px; }
+    .schedule-picker.show { display: block; }
+    .schedule-picker-title { font-size: 13px; font-weight: 600; color: #7c3aed; margin-bottom: 8px; }
+    .schedule-picker-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .schedule-picker input { padding: 6px 10px; border: 1px solid #ddd; border-radius: 7px; font-size: 13px; outline: none; }
+
+    /* Saved drafts in compose */
+    .saved-draft-item { border: 1px solid #f0f0f0; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
+    .saved-draft-item:last-child { margin-bottom: 0; }
+    .saved-draft-meta { font-size: 11px; color: #aaa; margin-bottom: 4px; }
+    .saved-draft-text { font-size: 13px; line-height: 1.5; color: #333; margin-bottom: 8px; white-space: pre-wrap; }
+    .saved-draft-actions { display: flex; gap: 6px; }
+
+    /* Loading */
+    .loading-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.92); z-index: 1000; flex-direction: column; align-items: center; justify-content: center; }
+    .loading-overlay.show { display: flex; }
+    .loading-spinner { width: 36px; height: 36px; border: 3px solid #f0f0f0; border-top: 3px solid #7c3aed; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 14px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 15px; font-weight: 600; color: #333; }
+    .loading-sub { font-size: 12px; color: #999; margin-top: 4px; }
   </style>
 </head>
 <body>
 
-<nav>
-  <a href="/" class="nav-brand">
+<!-- Sidebar -->
+<aside class="sidebar">
+  <a href="/" class="sidebar-brand">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
       <path d="M12 7l1.5 3 3.5.5-2.5 2.5.5 3.5L12 15l-3 1.5.5-3.5L7 10.5l3.5-.5z" fill="#7c3aed" stroke="#7c3aed" stroke-width="1.5"/>
     </svg>
     <span>MyBookmarks</span>
   </a>
-  <div style="display:flex;align-items:center;gap:16px;">
-    <a href="/" style="font-size:14px;font-weight:500;color:#888;text-decoration:none;">Dashboard</a>
-    <a href="/bookmarks" style="font-size:14px;font-weight:500;color:#888;text-decoration:none;">Bookmarks</a>
-    <a href="/tweets" style="font-size:14px;font-weight:500;color:#888;text-decoration:none;">Tweets</a>
-    <a href="/compose" style="font-size:14px;font-weight:500;color:#7c3aed;text-decoration:none;">Compose</a>
-    <a href="/calendar" style="font-size:14px;font-weight:500;color:#888;text-decoration:none;">Calendar</a>
-    <a href="/drafts" style="font-size:14px;font-weight:500;color:#888;text-decoration:none;">Drafts</a>
-    <a href="/settings" style="font-size:14px;font-weight:500;color:#888;text-decoration:none;">Settings</a>
-    <a href="/logout" style="font-size:14px;font-weight:500;color:#e0245e;text-decoration:none;">Sign out</a>
+  <div class="sidebar-section">Overview</div>
+  <a href="/" class="sidebar-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    Dashboard
+  </a>
+  <a href="/bookmarks" class="sidebar-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+    Bookmarks
+  </a>
+  <a href="/tweets" class="sidebar-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    Tweets
+  </a>
+  <div class="sidebar-section">Create</div>
+  <a href="/compose" class="sidebar-link active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Compose
+  </a>
+  <a href="/calendar" class="sidebar-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Calendar
+  </a>
+  <a href="/drafts" class="sidebar-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+    Drafts
+  </a>
+  <div class="sidebar-spacer"></div>
+  <a href="/settings" class="sidebar-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    Settings
+  </a>
+  <div class="sidebar-user">
+    <div class="sidebar-username">@{{ username }}</div>
+    <a href="/logout" class="sidebar-signout">Sign out</a>
   </div>
-</nav>
+</aside>
 
-<div class="container">
+<!-- Loading overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loadingMsg">Generating content...</div>
+  <div class="loading-sub">AI is crafting your post.</div>
+</div>
+
+<!-- Main Content -->
+<div class="main">
 
   {% if error %}
   <div class="error">{{ error }}</div>
@@ -157,76 +200,114 @@
   </div>
   {% endif %}
 
-  {% if not drafts and not linkedin_post %}
-  <!-- Topic Suggestions -->
-  {% if not suggestions %}
-  <div class="card" style="text-align:center; padding: 24px;">
-    <form method="POST" action="/compose/suggestions">
-      <button type="submit" class="btn btn-ai" onclick="this.textContent='Loading ideas...'; this.style.opacity='0.6'; this.style.pointerEvents='none';">Get Today's Content Ideas</button>
-    </form>
-    <p style="font-size:13px; color:#aaa; margin-top:10px;">AI generates trending topics based on your profile</p>
+  <div class="page-header">
+    <h1 class="page-title">Compose</h1>
   </div>
-  {% endif %}
 
-  {% if suggestions %}
+  {% if not drafts and not linkedin_post %}
+  <!-- ===== COMPOSE FORM (hero) ===== -->
   <div class="card">
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
-      <h2 style="margin-bottom:0;">Today's Content Ideas</h2>
-      <form method="POST" action="/compose/suggestions" style="display:inline">
-        <button type="submit" class="btn btn-sm btn-secondary" onclick="this.textContent='Regenerating...'; this.style.opacity='0.6';">Regenerate</button>
-      </form>
+    <form method="POST" action="/compose/generate" id="composeForm">
+      <div class="compose-area">
+        <textarea class="compose-textarea" name="idea" id="ideaInput" placeholder="What do you want to write about? e.g. Why most AI agents fail in production..." rows="4">{{ idea or '' }}</textarea>
+      </div>
+
+      <div class="compose-footer">
+        <div class="toggle-row">
+          <span class="toggle-label">Platform</span>
+          <button type="button" class="toggle-btn {% if platform != 'linkedin' and platform != 'both' %}active{% endif %}" onclick="setPlatform(this, 'x')">X</button>
+          <button type="button" class="toggle-btn {% if platform == 'linkedin' %}active{% endif %}" onclick="setPlatform(this, 'linkedin')">LinkedIn</button>
+          <button type="button" class="toggle-btn {% if platform == 'both' %}active{% endif %}" onclick="setPlatform(this, 'both')">Both</button>
+          <div class="toggle-divider" id="formatDivider" {% if platform == 'linkedin' %}style="display:none"{% endif %}></div>
+          <span class="toggle-label" id="formatLabel" {% if platform == 'linkedin' %}style="display:none"{% endif %}>Format</span>
+          <button type="button" class="toggle-btn format-opt {% if format_type != 'thread' %}active{% endif %}" id="fmtTweet" onclick="setFormat(this, 'tweet')" {% if platform == 'linkedin' %}style="display:none"{% endif %}>Tweet</button>
+          <button type="button" class="toggle-btn format-opt {% if format_type == 'thread' %}active{% endif %}" id="fmtThread" onclick="setFormat(this, 'thread')" {% if platform == 'linkedin' %}style="display:none"{% endif %}>Thread</button>
+        </div>
+        <button type="submit" class="btn btn-ai btn-lg" onclick="showLoading('Generating content...')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/></svg>
+          Generate
+        </button>
+      </div>
+
+      <input type="hidden" name="platform" id="platformInput" value="{{ platform or 'x' }}">
+      <input type="hidden" name="format" id="formatInput" value="{{ format_type or 'tweet' }}">
+    </form>
+  </div>
+
+  <!-- ===== CONTENT IDEAS (collapsible) ===== -->
+  {% if suggestions %}
+  <div class="card ideas-section">
+    <div class="ideas-toggle" onclick="toggleIdeas()">
+      <svg class="ideas-toggle-icon" id="ideasIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      <span class="ideas-toggle-text">Content ideas</span>
+      <span class="ideas-toggle-count">{{ suggestions|length }}</span>
     </div>
-    <p class="card-sub">Trending topics tailored to your profile. Click Compose to start writing.</p>
-    <div class="suggestion-grid">
+    <div class="ideas-grid" id="ideasGrid">
       {% for s in suggestions %}
-      <div class="suggestion-card">
-        <div class="suggestion-topic">{{ s.topic }}</div>
-        <div class="suggestion-hook">"{{ s.hook }}"</div>
-        <div class="suggestion-meta">
-          <span class="suggestion-badge {% if s.format == 'thread' %}badge-thread{% else %}badge-tweet{% endif %}">{{ s.format }}</span>
-          <button class="suggestion-compose" onclick="composeFromSuggestion('{{ s.hook | replace("'", "\\'") | replace("\n", " ") }}', '{{ s.format }}')">Compose</button>
+      <div class="idea-chip" onclick="useIdea(this, '{{ s.hook | replace("'", "\\'") | replace("\n", " ") }}', '{{ s.format }}')">
+        <div class="idea-content">
+          <div class="idea-topic">{{ s.topic }}</div>
+          <div class="idea-hook">"{{ s.hook }}"</div>
+        </div>
+        <div class="idea-right">
+          <span class="idea-badge {% if s.format == 'thread' %}badge-thread{% else %}badge-tweet{% endif %}">{{ s.format }}</span>
+          <button class="idea-use" onclick="event.stopPropagation(); useIdea(this.closest('.idea-chip'), '{{ s.hook | replace("'", "\\'") | replace("\n", " ") }}', '{{ s.format }}')">Use</button>
         </div>
       </div>
       {% endfor %}
     </div>
+    <div style="display:flex; gap:8px; margin-top:8px;">
+      <form method="POST" action="/compose/suggestions" style="display:inline">
+        <button type="submit" class="btn btn-sm btn-secondary" onclick="showLoading('Getting fresh ideas...')">Refresh ideas</button>
+      </form>
+    </div>
   </div>
-  {% endif %}
-
-  <!-- Compose Form -->
-  <div class="card" id="compose-card">
-    <h2>Write Your Own</h2>
-    <p class="card-sub">Enter a topic and let AI craft content for X, LinkedIn, or both.</p>
-    <form method="POST" action="/compose/generate" id="composeForm">
-      <div class="form-label" style="margin-bottom:6px;">Platform</div>
-      <div class="format-toggle" style="margin-bottom:14px;">
-        <div class="format-btn {% if platform != 'linkedin' and platform != 'both' %}active{% endif %}" onclick="setPlatform(this, 'x')">X / Twitter</div>
-        <div class="format-btn {% if platform == 'linkedin' %}active{% endif %}" onclick="setPlatform(this, 'linkedin')">LinkedIn</div>
-        <div class="format-btn {% if platform == 'both' %}active{% endif %}" onclick="setPlatform(this, 'both')">Both</div>
-      </div>
-      <input type="hidden" name="platform" id="platformInput" value="{{ platform or 'x' }}">
-
-      <div id="formatSection" {% if platform == 'linkedin' %}style="display:none"{% endif %}>
-        <div class="form-label" style="margin-bottom:6px;">Format (X/Twitter)</div>
-        <div class="format-toggle">
-          <div class="format-btn {% if format_type != 'thread' %}active{% endif %}" onclick="setFormat(this, 'tweet')">Single Tweet</div>
-          <div class="format-btn {% if format_type == 'thread' %}active{% endif %}" onclick="setFormat(this, 'thread')">Thread</div>
-        </div>
-      </div>
-      <input type="hidden" name="format" id="formatInput" value="{{ format_type or 'tweet' }}">
-
-      <div class="form-group">
-        <textarea name="idea" id="ideaInput" placeholder="e.g. Why most AI agents fail in production — and the 3 patterns that actually work..." rows="3">{{ idea or '' }}</textarea>
-      </div>
-      <button type="submit" class="btn btn-ai" onclick="this.textContent='Generating...'; this.style.opacity='0.6';">Generate with AI</button>
+  {% else %}
+  <div class="card" style="text-align:center; padding:16px;">
+    <form method="POST" action="/compose/suggestions">
+      <button type="submit" class="btn btn-sm btn-secondary" onclick="showLoading('Getting content ideas...')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        Load content ideas for inspiration
+      </button>
     </form>
   </div>
   {% endif %}
 
-  {% if drafts %}
-  <!-- Draft Preview -->
+  <!-- ===== SAVED DRAFTS ===== -->
+  {% if saved_drafts %}
   <div class="card">
-    <h2>{% if drafts|length > 1 %}Thread Preview{% else %}Tweet Preview{% endif %}</h2>
-    <p class="card-sub">Edit any tweet below, then post when ready.</p>
+    <div class="card-header">
+      <span class="card-title">Saved Drafts ({{ saved_drafts|length }})</span>
+      <a href="/drafts" class="btn btn-sm btn-secondary">View all</a>
+    </div>
+    {% for draft in saved_drafts[:3] %}
+    <div class="saved-draft-item">
+      <div class="saved-draft-meta">{{ draft.topic or 'Untitled' }} &middot; {{ draft.format }} &middot; {{ draft.created_at[:10] if draft.created_at else '' }}</div>
+      <div class="saved-draft-text">{{ draft.tweets[0][:120] if draft.tweets else '' }}{% if draft.tweets and draft.tweets[0]|length > 120 %}...{% endif %}</div>
+      <div class="saved-draft-actions">
+        <form method="POST" action="/compose/post" style="display:inline">
+          <input type="hidden" name="tweets" value="{{ draft.tweets | tojson }}">
+          <input type="hidden" name="draft_id" value="{{ draft.id }}">
+          <button type="submit" class="btn btn-sm btn-blue">Post</button>
+        </form>
+        <form method="POST" action="/compose/delete/{{ draft.id }}" style="display:inline">
+          <button type="submit" class="btn btn-sm btn-secondary" style="color:#e0245e;">Delete</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% endif %}{# end not drafts and not linkedin_post #}
+
+  <!-- ===== TWEET PREVIEW (after generation) ===== -->
+  {% if drafts %}
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">{% if drafts|length > 1 %}Thread Preview{% else %}Tweet Preview{% endif %}</span>
+      <span class="card-sub">Edit, then post or schedule.</span>
+    </div>
 
     <form method="POST" action="/compose/post" id="postForm">
       {% for tweet in drafts %}
@@ -238,9 +319,9 @@
           {% if loop.first and drafts|length > 1 %}
           <div class="tweet-label tweet-label-hook">HOOK</div>
           {% elif loop.last and drafts|length > 1 %}
-          <div class="tweet-label tweet-label-cta">CALL TO ACTION</div>
+          <div class="tweet-label tweet-label-cta">CLOSER</div>
           {% elif drafts|length > 1 %}
-          <div class="tweet-label">TWEET {{ loop.index }}/{{ drafts|length }}</div>
+          <div class="tweet-label">{{ loop.index }}/{{ drafts|length }}</div>
           {% endif %}
 
           <div class="tweet-preview-header">
@@ -250,45 +331,43 @@
               <span class="preview-handle">@{{ username }}</span>
             </div>
           </div>
-          <textarea class="tweet-preview-edit tweet-input" rows="4" oninput="updateCharCount(this)">{{ tweet }}</textarea>
+          <textarea class="tweet-preview-edit tweet-input" rows="3" oninput="updateCharCount(this)">{{ tweet }}</textarea>
           <div class="char-count"><span class="count-num">{{ tweet|length }}</span>/280</div>
         </div>
       {% endfor %}
 
       <input type="hidden" name="tweets" id="tweetsInput">
 
-      <div class="post-actions" style="flex-wrap:wrap;">
-        <a href="/compose" class="btn btn-secondary">Back to Ideas</a>
+      <div class="post-actions">
+        <a href="/compose" class="btn btn-secondary">Start over</a>
         <form method="POST" action="/compose/generate" style="display:inline">
           <input type="hidden" name="idea" value="{{ idea or '' }}">
           <input type="hidden" name="format" value="{{ format_type or 'tweet' }}">
           <input type="hidden" name="platform" value="{{ platform or 'x' }}">
-          <button type="submit" class="btn btn-secondary" onclick="this.textContent='Regenerating...'; this.style.opacity='0.6';">Regenerate</button>
+          <button type="submit" class="btn btn-secondary" onclick="showLoading('Regenerating...')">Regenerate</button>
         </form>
         <button type="button" class="btn btn-secondary" onclick="saveDraft()">Save Draft</button>
-        <button type="button" class="btn btn-ai" onclick="showScheduler('x')">Schedule</button>
+        <button type="button" class="btn btn-ai" onclick="toggleScheduler()">Schedule</button>
         <button type="submit" class="btn btn-blue" onclick="prepareTweets()">Post to X</button>
       </div>
 
-      <!-- Schedule picker (hidden until Schedule clicked) -->
-      <div id="schedulerX" style="display:none; margin-top:14px; padding:16px; background:#faf8ff; border:1px solid #e8e5ff; border-radius:10px;">
-        <div style="font-size:14px; font-weight:600; color:#7c3aed; margin-bottom:10px;">Schedule this post</div>
-        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-          <input type="datetime-local" id="scheduleTimeX" style="padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; outline:none;">
-          <button type="button" class="btn btn-ai" onclick="submitSchedule('x')">Confirm Schedule</button>
-          <button type="button" class="btn btn-secondary" onclick="document.getElementById('schedulerX').style.display='none'">Cancel</button>
+      <!-- Schedule picker -->
+      <div class="schedule-picker" id="schedulePicker">
+        <div class="schedule-picker-title">Schedule this post</div>
+        <div class="schedule-picker-row">
+          <input type="datetime-local" id="scheduleTimeX">
+          <button type="button" class="btn btn-ai btn-sm" onclick="submitSchedule()">Confirm</button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('schedulePicker').classList.remove('show')">Cancel</button>
         </div>
       </div>
     </form>
 
-    <!-- Hidden save form -->
+    <!-- Hidden forms -->
     <form method="POST" action="/compose/save" id="saveForm" style="display:none">
       <input type="hidden" name="tweets" id="saveTweetsInput">
       <input type="hidden" name="topic" value="{{ idea or '' }}">
       <input type="hidden" name="format" value="{{ format_type or 'tweet' }}">
     </form>
-
-    <!-- Hidden schedule form -->
     <form method="POST" action="/compose/schedule" id="scheduleForm" style="display:none">
       <input type="hidden" name="tweets" id="scheduleTweetsInput">
       <input type="hidden" name="topic" value="{{ idea or '' }}">
@@ -298,38 +377,39 @@
   </div>
   {% endif %}
 
+  <!-- ===== LINKEDIN PREVIEW ===== -->
   {% if linkedin_post %}
-  <!-- LinkedIn Preview -->
   <div class="card">
-    <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="#0A66C2"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
-      <h2 style="margin-bottom:0;">LinkedIn Post Preview</h2>
+    <div class="card-header">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="#0A66C2"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+        <span class="card-title">LinkedIn Preview</span>
+      </div>
+      <span class="card-sub">Edit, then copy.</span>
     </div>
-    <div style="border:1px solid #e5e5e5; border-radius:12px; padding:20px; background:#fafafa;">
-      <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
-        <div style="width:40px;height:40px;background:#0A66C2;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px;">{{ username[0].upper() }}</div>
+    <div style="border:1px solid #eee; border-radius:10px; padding:14px; background:#fafafa;">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+        <div style="width:32px;height:32px;background:#0A66C2;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;">{{ username[0].upper() }}</div>
         <div>
-          <div style="font-weight:600; font-size:14px;">{{ username }}</div>
-          <div style="font-size:12px; color:#888;">Angel Investor &middot; Tech Founder</div>
+          <div style="font-weight:600; font-size:13px;">{{ username }}</div>
+          <div style="font-size:11px; color:#888;">Angel Investor &middot; Tech Founder</div>
         </div>
       </div>
-      <textarea id="linkedinText" style="width:100%; border:1px solid #e5e5e5; border-radius:8px; padding:14px; font-size:14px; font-family:inherit; min-height:200px; line-height:1.7; resize:vertical; outline:none; background:#fff;" oninput="updateLiCount()">{{ linkedin_post }}</textarea>
-      <div style="margin-top:8px;">
-        <span style="font-size:11px; color:#aaa;" id="liCount">{{ linkedin_post|length }}/3000</span>
-      </div>
+      <textarea id="linkedinText" style="width:100%; border:1px solid #eee; border-radius:8px; padding:12px; font-size:13px; font-family:inherit; min-height:180px; line-height:1.7; resize:vertical; outline:none; background:#fff;" oninput="updateLiCount()">{{ linkedin_post }}</textarea>
+      <div style="margin-top:4px;"><span style="font-size:10px; color:#aaa;" id="liCount">{{ linkedin_post|length }}/3000</span></div>
     </div>
     <div class="post-actions">
+      <a href="/compose" class="btn btn-secondary">Start over</a>
       <form method="POST" action="/compose/generate" style="display:inline">
         <input type="hidden" name="idea" value="{{ idea or '' }}">
         <input type="hidden" name="format" value="{{ format_type or 'tweet' }}">
         <input type="hidden" name="platform" value="{{ platform or 'linkedin' }}">
-        <button type="submit" class="btn btn-secondary" onclick="this.textContent='Regenerating...'; this.style.opacity='0.6';">Regenerate</button>
+        <button type="submit" class="btn btn-secondary" onclick="showLoading('Regenerating...')">Regenerate</button>
       </form>
-      <button type="button" class="btn btn-secondary" onclick="saveLinkedInDraft()">Save for Later</button>
+      <button type="button" class="btn btn-secondary" onclick="saveLinkedInDraft()">Save Draft</button>
       <button onclick="copyLinkedIn(this)" class="btn btn-blue">Copy to clipboard</button>
     </div>
 
-    <!-- Hidden save form for LinkedIn -->
     <form method="POST" action="/compose/save" id="liSaveForm" style="display:none">
       <input type="hidden" name="tweets" id="liSaveTweetsInput">
       <input type="hidden" name="topic" value="{{ idea or '' }}">
@@ -338,60 +418,94 @@
   </div>
   {% endif %}
 
-  {% if saved_drafts %}
-  <!-- Saved Drafts -->
-  <div class="card">
-    <h2>Saved Drafts ({{ saved_drafts|length }})</h2>
-    {% for draft in saved_drafts %}
-    <div style="border: 1px solid #f0f0f0; border-radius: 10px; padding: 16px; margin-bottom: 12px;">
-      <div style="font-size: 13px; color: #aaa; margin-bottom: 8px;">
-        {{ draft.topic or 'Untitled' }} &middot; {{ draft.format }} &middot; {{ draft.created_at[:10] if draft.created_at else '' }}
-      </div>
-      <div style="font-size: 14px; line-height: 1.5; color: #333; margin-bottom: 12px; white-space: pre-wrap;">{{ draft.tweets[0] if draft.tweets else '' }}</div>
-      {% if draft.tweets|length > 1 %}
-      <div style="font-size: 12px; color: #888; margin-bottom: 12px;">+ {{ draft.tweets|length - 1 }} more tweets in thread</div>
-      {% endif %}
-      <div style="display: flex; gap: 8px;">
-        <form method="POST" action="/compose/post" style="display:inline">
-          <input type="hidden" name="tweets" value="{{ draft.tweets | tojson }}">
-          <input type="hidden" name="draft_id" value="{{ draft.id }}">
-          <button type="submit" class="btn btn-sm btn-blue">Post to X</button>
-        </form>
-        <form method="POST" action="/compose/delete/{{ draft.id }}" style="display:inline">
-          <button type="submit" class="btn btn-sm btn-secondary" style="color: #e0245e;">Delete</button>
-        </form>
-      </div>
-    </div>
-    {% endfor %}
-  </div>
-  {% endif %}
-
 </div>
 
 <script>
+function showLoading(msg) {
+  if (msg) document.getElementById('loadingMsg').textContent = msg;
+  document.getElementById('loadingOverlay').classList.add('show');
+}
+
 function setPlatform(btn, platform) {
-  var toggles = btn.parentElement.querySelectorAll('.format-btn');
-  toggles.forEach(b => b.classList.remove('active'));
+  btn.parentElement.querySelectorAll('.toggle-btn:not(.format-opt)').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('platformInput').value = platform;
-  var fs = document.getElementById('formatSection');
-  if (fs) fs.style.display = (platform === 'linkedin') ? 'none' : '';
+  var show = platform !== 'linkedin';
+  document.getElementById('formatDivider').style.display = show ? '' : 'none';
+  document.getElementById('formatLabel').style.display = show ? '' : 'none';
+  document.getElementById('fmtTweet').style.display = show ? '' : 'none';
+  document.getElementById('fmtThread').style.display = show ? '' : 'none';
 }
 
 function setFormat(btn, format) {
-  var toggles = btn.parentElement.querySelectorAll('.format-btn');
-  toggles.forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.format-opt').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('formatInput').value = format;
+}
+
+function toggleIdeas() {
+  var grid = document.getElementById('ideasGrid');
+  var icon = document.getElementById('ideasIcon');
+  grid.classList.toggle('open');
+  icon.classList.toggle('open');
+}
+
+function useIdea(chip, hook, format) {
+  document.getElementById('ideaInput').value = hook;
+  document.getElementById('formatInput').value = format;
+  document.querySelectorAll('.format-opt').forEach(b => b.classList.remove('active'));
+  if (format === 'thread') {
+    document.getElementById('fmtThread').classList.add('active');
+  } else {
+    document.getElementById('fmtTweet').classList.add('active');
+  }
+  document.getElementById('ideaInput').focus();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function updateCharCount(textarea) {
+  var count = textarea.value.length;
+  var el = textarea.parentElement.querySelector('.count-num');
+  var container = textarea.parentElement.querySelector('.char-count');
+  el.textContent = count;
+  container.classList.toggle('over', count > 280);
+}
+
+function prepareTweets() {
+  var inputs = document.querySelectorAll('.tweet-input');
+  var tweets = Array.from(inputs).map(t => t.value.trim()).filter(t => t);
+  document.getElementById('tweetsInput').value = JSON.stringify(tweets);
+}
+
+function saveDraft() {
+  var inputs = document.querySelectorAll('.tweet-input');
+  var tweets = Array.from(inputs).map(t => t.value.trim()).filter(t => t);
+  if (!tweets.length) return;
+  document.getElementById('saveTweetsInput').value = JSON.stringify(tweets);
+  document.getElementById('saveForm').submit();
+}
+
+function toggleScheduler() {
+  document.getElementById('schedulePicker').classList.toggle('show');
+}
+
+function submitSchedule() {
+  var time = document.getElementById('scheduleTimeX').value;
+  if (!time) { alert('Pick a date and time first.'); return; }
+  var utcTime = new Date(time).toISOString();
+  var inputs = document.querySelectorAll('.tweet-input');
+  var tweets = Array.from(inputs).map(t => t.value.trim()).filter(t => t);
+  document.getElementById('scheduleTweetsInput').value = JSON.stringify(tweets);
+  document.getElementById('scheduleAtInput').value = utcTime;
+  document.getElementById('scheduleForm').submit();
 }
 
 function copyLinkedIn(btn) {
   var text = document.getElementById('linkedinText').value;
   navigator.clipboard.writeText(text).then(function() {
     btn.textContent = 'Copied!';
-    btn.style.background = '#f0fdf4';
-    btn.style.color = '#166534';
-    setTimeout(function() { btn.textContent = 'Copy to clipboard'; btn.style.background = '#e8f0fe'; btn.style.color = '#0A66C2'; }, 2000);
+    btn.style.background = '#f0fdf4'; btn.style.color = '#166534';
+    setTimeout(function() { btn.textContent = 'Copy to clipboard'; btn.style.background = '#1D9BF0'; btn.style.color = '#fff'; }, 2000);
   });
 }
 
@@ -400,61 +514,6 @@ function updateLiCount() {
   var el = document.getElementById('liCount');
   el.textContent = len + '/3000';
   el.style.color = len > 3000 ? '#e0245e' : '#aaa';
-}
-
-function composeFromSuggestion(hook, format) {
-  document.getElementById('ideaInput').value = hook;
-  document.getElementById('formatInput').value = format;
-  document.querySelectorAll('.format-btn').forEach(b => b.classList.remove('active'));
-  if (format === 'thread') {
-    document.querySelectorAll('.format-btn')[1].classList.add('active');
-  } else {
-    document.querySelectorAll('.format-btn')[0].classList.add('active');
-  }
-  document.getElementById('compose-card').scrollIntoView({ behavior: 'smooth' });
-  document.getElementById('ideaInput').focus();
-}
-
-function updateCharCount(textarea) {
-  const count = textarea.value.length;
-  const el = textarea.parentElement.querySelector('.count-num');
-  const container = textarea.parentElement.querySelector('.char-count');
-  el.textContent = count;
-  container.classList.toggle('over', count > 280);
-}
-
-function prepareTweets() {
-  const inputs = document.querySelectorAll('.tweet-input');
-  const tweets = Array.from(inputs).map(t => t.value.trim()).filter(t => t);
-  document.getElementById('tweetsInput').value = JSON.stringify(tweets);
-}
-
-function saveDraft() {
-  const inputs = document.querySelectorAll('.tweet-input');
-  const tweets = Array.from(inputs).map(t => t.value.trim()).filter(t => t);
-  if (!tweets.length) return;
-  document.getElementById('saveTweetsInput').value = JSON.stringify(tweets);
-  document.getElementById('saveForm').submit();
-}
-
-function showScheduler(type) {
-  var el = document.getElementById('scheduler' + type.toUpperCase());
-  if (el) el.style.display = 'block';
-}
-
-function submitSchedule(type) {
-  var time = document.getElementById('scheduleTime' + type.toUpperCase()).value;
-  if (!time) { alert('Pick a date and time first.'); return; }
-  // Convert local time to UTC ISO string
-  var localDate = new Date(time);
-  var utcTime = localDate.toISOString();
-  if (type === 'x') {
-    var inputs = document.querySelectorAll('.tweet-input');
-    var tweets = Array.from(inputs).map(function(t) { return t.value.trim(); }).filter(function(t) { return t; });
-    document.getElementById('scheduleTweetsInput').value = JSON.stringify(tweets);
-    document.getElementById('scheduleAtInput').value = utcTime;
-    document.getElementById('scheduleForm').submit();
-  }
 }
 
 function saveLinkedInDraft() {
