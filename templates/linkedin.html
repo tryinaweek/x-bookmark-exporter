@@ -273,47 +273,96 @@
   </div>
   {% endif %}
 
-  <!-- ===== STEP: BRIEF (review + generate drafts) ===== -->
+  <!-- ===== STEP: BRIEF ===== -->
   {% if step == 'brief' and brief %}
   <div class="card">
     <div class="card-header">
       <span class="card-title">Content Brief</span>
-      <span class="card-sub">{{ topic }}</span>
+      {% if brief.post_type %}
+      <span style="font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:#0A66C2; background:#e8f0fe; padding:2px 8px; border-radius:6px;">{{ brief.post_type | replace('_', ' ') }}</span>
+      {% endif %}
+    </div>
+
+    <!-- Core angle -->
+    <div class="brief-section">
+      <div class="brief-label">Angle</div>
+      <div class="brief-value" style="font-weight:600; font-size:14px;">{{ brief.angle or brief.topic }}</div>
     </div>
 
     <div class="brief-section">
-      <div class="brief-label">Hook</div>
-      <div class="brief-value" style="font-weight:600; font-size:15px;">{{ brief.hook }}</div>
+      <div class="brief-label">Core Claim</div>
+      <div style="font-size:13px; color:#333; padding:8px 10px; background:#f7faff; border-left:3px solid #0A66C2; border-radius:4px; line-height:1.5;">{{ brief.core_claim }}</div>
     </div>
 
+    {% if brief.target_audience %}
     <div class="brief-section">
-      <div class="brief-label">Thesis</div>
-      <div class="brief-value">{{ brief.thesis }}</div>
+      <div class="brief-label">Target Audience</div>
+      <div class="brief-value">{{ brief.target_audience }}</div>
     </div>
+    {% endif %}
 
+    {% if brief.why_this_fits_user %}
+    <div class="brief-section">
+      <div class="brief-label">Why You Can Say This</div>
+      <div class="brief-value">{{ brief.why_this_fits_user }}</div>
+    </div>
+    {% endif %}
+
+    <!-- Proof & signals -->
+    {% if brief.proof_points %}
     <div class="brief-section">
       <div class="brief-label">Proof Points</div>
       <ul class="brief-list">
-        {% for point in brief.proof_points %}
-        <li>{{ point }}</li>
-        {% endfor %}
+        {% for point in brief.proof_points %}<li>{{ point }}</li>{% endfor %}
       </ul>
     </div>
+    {% endif %}
 
+    {% if brief.bookmark_signals %}
     <div class="brief-section">
-      <div class="brief-label">Insight</div>
-      <div class="brief-value">{{ brief.insight }}</div>
+      <div class="brief-label">Bookmark Signals</div>
+      <div style="display:flex; flex-wrap:wrap; gap:4px;">
+        {% for sig in brief.bookmark_signals %}
+        <span style="font-size:11px; padding:3px 8px; background:#f3edff; color:#7c3aed; border-radius:6px;">{{ sig }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Hook options -->
+    {% if brief.hook_options %}
+    <div class="brief-section">
+      <div class="brief-label">Hook Options</div>
+      {% for hook in brief.hook_options %}
+      <div style="font-size:13px; color:#333; padding:6px 10px; background:#fafafa; border-radius:6px; margin-bottom:4px; border:1px solid #f0f0f0; line-height:1.4;">{{ hook }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Constraints & risks -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:4px;">
+      {% if brief.voice_constraints %}
+      <div class="brief-section">
+        <div class="brief-label">Voice Constraints</div>
+        {% for vc in brief.voice_constraints %}
+        <div style="font-size:11px; color:#666; padding:2px 0;">{{ vc }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% if brief.risk_flags %}
+      <div class="brief-section">
+        <div class="brief-label" style="color:#e0245e;">Risk Flags</div>
+        {% for rf in brief.risk_flags %}
+        <div style="font-size:11px; color:#c0392b; padding:2px 0;">{{ rf }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
     </div>
 
-    <div class="brief-section">
-      <div class="brief-label">Closer</div>
-      <div class="brief-value" style="font-style:italic;">{{ brief.closer }}</div>
-    </div>
-
-    {% if brief.tone_note %}
-    <div class="brief-section" style="margin-top:12px; padding-top:12px; border-top:1px solid #f0f0f0;">
-      <div class="brief-label">Tone</div>
-      <div class="brief-value" style="font-size:12px; color:#888;">{{ brief.tone_note }}</div>
+    {% if brief.cta_mode and brief.cta_mode != 'none' %}
+    <div class="brief-section" style="margin-top:6px;">
+      <div class="brief-label">CTA Mode</div>
+      <div class="brief-value">{{ brief.cta_mode | replace('_', ' ') }}</div>
     </div>
     {% endif %}
 
@@ -330,7 +379,7 @@
   </div>
   {% endif %}
 
-  <!-- ===== STEP: DRAFTS (3 variants to choose from) ===== -->
+  <!-- ===== STEP: DRAFTS ===== -->
   {% if step == 'drafts' and li_drafts %}
   <div class="card">
     <div class="card-header">
@@ -339,22 +388,36 @@
     </div>
 
     {% for draft in li_drafts %}
-    <div class="draft-variant">
+    <div class="draft-variant" style="{% if draft.scores and draft.scores.total and draft.scores.total >= 50 %}border-color:#0A66C2;{% endif %}">
       <div class="draft-variant-header">
         <div>
-          <span class="draft-variant-label {{ draft.style }}">
-            {% if draft.style == 'straight' %}Straight Shooter
-            {% elif draft.style == 'story' %}Storyteller
-            {% else %}Framework{% endif %}
+          <span class="draft-variant-label {% if loop.index == 1 %}straight{% elif loop.index == 2 %}story{% else %}framework{% endif %}">
+            {{ draft.label or ('Variant ' ~ loop.index) }}
           </span>
-          <span class="draft-variant-desc">
-            {% if draft.style == 'straight' %} — Direct, punchy, no fluff
-            {% elif draft.style == 'story' %} — Opens with a scene, builds to insight
-            {% else %} — Structured with numbered steps{% endif %}
-          </span>
+          {% if draft.style_note %}
+          <span class="draft-variant-desc"> — {{ draft.style_note }}</span>
+          {% endif %}
         </div>
+        {% if draft.scores %}
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="font-size:11px; font-weight:700; {% if draft.scores.total >= 50 %}color:#166534;{% elif draft.scores.total >= 40 %}color:#d97706;{% else %}color:#c0392b;{% endif %}">{{ draft.scores.total }}/70</span>
+          {% if draft.scores.flag %}
+          <span style="font-size:10px; color:#c0392b; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ draft.scores.flag }}">{{ draft.scores.flag }}</span>
+          {% endif %}
+        </div>
+        {% endif %}
       </div>
-      <textarea class="draft-text" id="draft-{{ loop.index }}" rows="8" oninput="updateCount(this)">{{ draft.post }}</textarea>
+
+      {% if draft.scores %}
+      <div style="display:flex; gap:3px; margin-bottom:8px; flex-wrap:wrap;">
+        {% set dims = [('Hook', draft.scores.hook_strength), ('Specific', draft.scores.specificity), ('Proof', draft.scores.proof_density), ('Voice', draft.scores.voice_match), ('Original', draft.scores.genericness), ('No Guru', draft.scores.guru_tone), ('Mobile', draft.scores.mobile_readability)] %}
+        {% for name, val in dims %}
+        <span style="font-size:9px; padding:2px 6px; border-radius:4px; font-weight:600; {% if val >= 8 %}background:#f0fdf4; color:#166534;{% elif val >= 6 %}background:#fefce8; color:#854d0e;{% else %}background:#fff0f0; color:#c0392b;{% endif %}">{{ name }} {{ val }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <textarea class="draft-text" id="draft-{{ loop.index }}" rows="10" oninput="updateCount(this)">{{ draft.post }}</textarea>
       <div class="char-count"><span id="count-{{ loop.index }}">{{ draft.post|length }}</span> chars</div>
       <div class="draft-actions">
         <form method="POST" action="/linkedin/save" style="display:inline">

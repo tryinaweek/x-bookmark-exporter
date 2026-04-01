@@ -716,71 +716,222 @@ Rules:
 
 
 def generate_linkedin_brief(username, db_uid, topic, angle):
-    """Step 2: Turn a selected idea into a structured LinkedIn brief."""
+    """Step 2: Convert idea/topic into a defensible LinkedIn post brief.
+
+    Returns dict with: topic, angle, core_claim, post_type, target_audience,
+    why_this_fits_user, proof_points, bookmark_signals, voice_constraints,
+    cta_mode, hook_options, risk_flags.
+    """
     if not CLAUDE_API_KEY:
         return None
     context = _gather_linkedin_context(db_uid)
-    prompt = f"""LinkedIn content brief writer for {username}.
+    prompt = f"""You are the LinkedIn Brief Builder inside MyBookmarks.
 
+Your job is to prepare a high-quality LinkedIn post brief for a founder/operator creator.
+
+Do NOT write the final post.
+Do NOT output prose.
+Return only valid JSON.
+
+=== USER: {username} ===
 {context}
 
-The user selected this idea:
+=== SELECTED IDEA ===
 Topic: {topic}
-Angle: {angle}
+Angle/context: {angle}
 
-Create a structured brief that a writer (or AI) can use to produce the final post. This brief should mine the user's profile, expertise, and experience for SPECIFIC proof points.
+Use:
+- the selected idea or raw topic
+- the user's bookmark patterns
+- the user's past content performance
+- the user's voice profile
+- the user's expertise, current focus, strong opinions, and writing examples
 
-Return ONLY valid JSON:
+Your job is to convert a rough idea into a defensible LinkedIn angle.
+
+The brief must answer:
+- what is the post really saying?
+- why can this specific user credibly say it?
+- what proof or lived evidence supports it?
+- what post shape fits best?
+- what tone constraints matter?
+- what risks should be avoided?
+
+Choose exactly one primary post type from:
+- contrarian_lesson
+- founder_story
+- operator_framework
+- market_observation
+- bookmark_distillation
+- pattern_recognition
+- build_in_public_update
+
+Return JSON with exactly this shape:
 {{"brief":{{
-  "hook":"The opening line — one bold, specific sentence",
-  "thesis":"The core argument in 1-2 sentences",
-  "proof_points":["3-4 specific proof points from their experience. Each must reference a real project, number, decision, or outcome."],
-  "insight":"The non-obvious takeaway. What does this mean for the reader?",
-  "closer":"One sharp closing line — a question or a reframe",
-  "tone_note":"Brief note on voice calibration for this specific post"
-}}}}"""
+  "topic":"sharpened topic — more specific than the input",
+  "angle":"the specific contrarian or surprising framing",
+  "core_claim":"one sentence the user can credibly defend",
+  "post_type":"one of the 7 values above",
+  "target_audience":"who specifically will care about this",
+  "why_this_fits_user":"what gives this user the authority to say this",
+  "proof_points":["3-4 concrete proof points from their experience — real projects, numbers, decisions, outcomes"],
+  "bookmark_signals":["2-3 relevant patterns from what the user has been reading"],
+  "voice_constraints":["3-4 specific tone/style rules for THIS post — drawn from their voice profile and don'ts"],
+  "cta_mode":"none|question|conversation|soft_invite",
+  "hook_options":["3 different opening lines — bold, specific, scroll-stopping, not clickbait"],
+  "risk_flags":["2-3 honest risks: generic, unsupported, preachy, too broad, etc."]
+}}}}
+
+Rules:
+- "angle" must be sharper than the original topic.
+- "core_claim" must be one sentence the user can credibly defend.
+- "why_this_fits_user" must explain the authority to say it.
+- "proof_points" should be concrete, not vague.
+- "voice_constraints" should reflect real voice rules and banned language patterns.
+- "cta_mode" must be one of: none, question, conversation, soft_invite
+- "hook_options" must be strong but not clickbait.
+- "risk_flags" should be honest and useful.
+- If the topic is weak, improve it.
+- If evidence is weak, note that clearly.
+- Do not write the post.
+
+Return valid JSON only."""
 
     try:
-        result, _ = _call_claude(prompt, max_tokens=2048)
+        result, _ = _call_claude(prompt, max_tokens=3072)
         return result.get("brief") if result else None
     except Exception:
         return None
 
 
 def generate_linkedin_drafts(username, db_uid, brief):
-    """Step 3: Generate 3 LinkedIn post variants from a brief."""
+    """Step 3: Generate 3 LinkedIn post variants from a brief.
+
+    Returns list of dicts with: label, style_note, post, scores (from critic).
+    """
     if not CLAUDE_API_KEY:
         return []
     voice = get_voice_context(db_uid) if db_uid else PROFILE_CONTEXT
     brief_text = json.dumps(brief, indent=2)
-    prompt = f"""LinkedIn ghostwriter for {username}.
+    prompt = f"""You are the LinkedIn Writing Engine inside MyBookmarks.
 
+Your job is to write 3 strong LinkedIn post variants for a founder/operator.
+
+=== USER VOICE ===
 {voice}
 
-Write 3 DIFFERENT LinkedIn post variants from this brief:
+=== BRIEF ===
 {brief_text}
 
-Each variant should take a different approach:
-- Variant A: "Straight shooter" — direct, punchy, no fluff. Shortest version.
-- Variant B: "Storyteller" — opens with a specific moment/scene, then builds to the insight.
-- Variant C: "Framework" — structured with a clear numbered framework or process.
+Write like a credible builder.
+Not a motivational writer.
+Not a ghostwritten influencer caricature.
+Not a corporate marketer.
 
-{LINKEDIN_VOICE_RULES}
+The post must sound like this user could have written it from lived experience.
 
-CRITICAL: Write in EXACTLY this person's voice. Use their real experience, real projects, real numbers. Not generic advice.
+Core principles:
+- Start strong.
+- One idea per line.
+- Optimize for LinkedIn mobile readability.
+- Prefer tension, proof, specificity, and hard-earned insight.
+- If a sentence could apply to anyone, cut it.
+- Use concrete nouns and real operating language.
+- Avoid fluff, filler, cliches, and fake certainty.
+- Do not fabricate numbers, names, or outcomes.
+- Do not use hashtags unless explicitly requested.
+- Do not use emojis unless explicitly requested.
+
+Structure:
+- Hook
+- Expansion or tension
+- Proof or example
+- Insight / lesson
+- Optional closer or soft CTA
+
+Behavior by post_type (use the brief's post_type):
+- contrarian_lesson: challenge common advice and defend it with proof
+- founder_story: open from a real moment, mistake, or decision and extract a lesson
+- operator_framework: teach a practical framework in at most 3 to 5 steps
+- market_observation: identify a pattern and explain what it means
+- bookmark_distillation: turn consumed knowledge into a personal applied takeaway
+- pattern_recognition: highlight a repeated behavior or failure mode
+- build_in_public_update: show what changed, what shipped, and what was learned
+
+Before writing, silently honor:
+- the brief's voice_constraints
+- the brief's risk_flags
+- the user's banned phrases (from voice profile)
+- the user's writing examples (from voice profile)
+
+Output rules:
+- Return exactly 3 variants as JSON
+- Variant 1 = sharpest / most contrarian
+- Variant 2 = most personal / founder voice
+- Variant 3 = most useful / educational
+- Each variant: 8 to 16 short lines, plain text, no markdown
+- Use \\n for line breaks within post text
 
 Return ONLY valid JSON:
 {{"drafts":[
-  {{"style":"straight","post":"The full post text"}},
-  {{"style":"story","post":"The full post text"}},
-  {{"style":"framework","post":"The full post text"}}
+  {{"label":"Sharpest","style_note":"Most contrarian take","post":"the full post text with \\n line breaks"}},
+  {{"label":"Most Personal","style_note":"Founder voice, story-driven","post":"the full post text with \\n line breaks"}},
+  {{"label":"Most Useful","style_note":"Educational, framework-driven","post":"the full post text with \\n line breaks"}}
 ]}}"""
 
     try:
         result, _ = _call_claude(prompt, max_tokens=4096)
-        return result.get("drafts", []) if result else []
+        drafts = result.get("drafts", []) if result else []
+        if drafts:
+            drafts = _score_linkedin_drafts(drafts, brief, voice)
+        return drafts
     except Exception:
         return []
+
+
+def _score_linkedin_drafts(drafts, brief, voice):
+    """Internal critic: score each draft on quality dimensions, rank them."""
+    if not CLAUDE_API_KEY or not drafts:
+        return drafts
+    drafts_text = "\n\n---\n\n".join(
+        f"VARIANT {i+1} ({d.get('label','')}):\n{d.get('post','')}" for i, d in enumerate(drafts)
+    )
+    prompt = f"""You are a LinkedIn draft critic. Score each variant honestly.
+
+Brief context: {json.dumps(brief, indent=2) if isinstance(brief, dict) else brief}
+
+Voice context (abbreviated): {voice[:500]}
+
+Drafts to evaluate:
+{drafts_text}
+
+Score each variant (1-10) on:
+- hook_strength: Does the first line stop the scroll?
+- specificity: Are there real details, not vague claims?
+- proof_density: How much lived evidence is in the post?
+- voice_match: Does it sound like this specific person?
+- genericness: How generic is it? (1=very generic, 10=very specific)
+- guru_tone: How much guru/motivational tone? (1=very guru, 10=no guru at all)
+- mobile_readability: Short lines, good whitespace, scannable?
+
+Return ONLY valid JSON:
+{{"scores":[
+  {{"variant":1,"hook_strength":0,"specificity":0,"proof_density":0,"voice_match":0,"genericness":0,"guru_tone":0,"mobile_readability":0,"total":0,"flag":"optional one-line concern or empty string"}},
+  {{"variant":2,"hook_strength":0,"specificity":0,"proof_density":0,"voice_match":0,"genericness":0,"guru_tone":0,"mobile_readability":0,"total":0,"flag":""}},
+  {{"variant":3,"hook_strength":0,"specificity":0,"proof_density":0,"voice_match":0,"genericness":0,"guru_tone":0,"mobile_readability":0,"total":0,"flag":""}}
+]}}
+Total = sum of all 7 scores (max 70). Be honest — a 6 is fine, not everything is a 9."""
+
+    try:
+        result, _ = _call_claude(prompt, max_tokens=1024)
+        scores = result.get("scores", []) if result else []
+        for i, draft in enumerate(drafts):
+            if i < len(scores):
+                draft["scores"] = scores[i]
+        # Sort by total score descending but preserve original labels
+        return drafts
+    except Exception:
+        return drafts
 
 
 def build_excel(bookmarks):
@@ -1265,7 +1416,7 @@ def linkedin_save():
 
 @app.route("/linkedin/generate", methods=["POST"])
 def linkedin_generate_direct():
-    """Direct generation from custom topic — skip ideas, go straight to brief+drafts."""
+    """Direct generation from custom topic — skip ideas, generate brief then show it."""
     if not session.get("access_token"):
         return redirect("/")
     db_uid = ensure_db_uid()
@@ -1278,9 +1429,9 @@ def linkedin_generate_direct():
         return render_template("linkedin.html", connected=True, username=session.get("username", ""),
                                step="start", error="Failed to generate brief. Try again.")
 
-    drafts = generate_linkedin_drafts(session.get("username", ""), db_uid, brief)
+    # Show the brief first — let user review before generating drafts
     return render_template("linkedin.html", connected=True, username=session.get("username", ""),
-                           step="drafts", li_drafts=drafts, topic=topic, brief=brief)
+                           step="brief", brief=brief, topic=topic, angle=topic)
 
 
 @app.route("/calendar")
